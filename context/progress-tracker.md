@@ -1,15 +1,14 @@
 # Progress Tracker
 
-Update this file after every meaningful implementation
-change.
+Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
 
-- [e.g. Not started / In progress / Complete]
+- Not started
 
 ## Current Goal
 
-- [What you are building right now]
+- Define the immediate implementation goal here.
 
 ## Completed
 
@@ -21,17 +20,16 @@ change.
 
 ## Next Up
 
-- [First unit to build]
+- Add the next planned feature unit here.
 
 ## Open Questions
 
-- [Any unresolved product or technical decisions]
+- Add unresolved product or implementation questions here.
 
 ## Architecture Decisions
 
-- [Decisions made that affect the system design or
-  data model — include why the decision was made]
+- Add decisions that affect the system design or data model.
 
 ## Session Notes
 
-- [Context needed to resume work in the next session]
+- Add context needed to resume work in the next session.
