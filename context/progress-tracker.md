@@ -4,23 +4,23 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Not started
+- Foundation / Design System
 
 ## Current Goal
 
-- Define the immediate implementation goal here.
+- Feature 02: Authentication (Clerk) and route protection.
 
 ## Completed
 
-- None yet.
+- Feature 01: Design System — shadcn/ui initialized (base-nova preset, Base UI + Lucide), primitive components installed (Button, Card, Dialog, Input, Tabs, Textarea, ScrollArea), `lib/utils.ts` with `cn()` created, `globals.css` configured with dark-only theme (all project CSS variables + shadcn token overrides), `<html class="dark">` set for dark-variant activation. Build passes clean.
 
 ## In Progress
 
-- None yet.
+- None.
 
 ## Next Up
 
-- Add the next planned feature unit here.
+- Feature 02: Authentication (Clerk) and route protection.
 
 ## Open Questions
 
@@ -28,8 +28,13 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Architecture Decisions
 
-- Add decisions that affect the system design or data model.
+- Tailwind v4 with `@theme inline` CSS variable mapping — no tailwind.config.js.
+- shadcn/ui v4 with base-nova preset (Base UI + Lucide) — components live in `components/ui/` and must not be modified after generation.
+- Dark-only — `:root` set to dark values, `<html class="dark">` activates shadcn dark: variants. No light/dark toggle.
+- Ghost AI design tokens (`--bg-base`, `--text-primary`, `--accent-primary`, etc.) defined on `:root` and mapped to Tailwind utilities via `@theme inline` (e.g. `bg-base`, `text-copy-primary`, `text-brand`, `bg-accent-dim`).
 
 ## Session Notes
 
-- Add context needed to resume work in the next session.
+- Stack: Next.js 16 + React 19 + Tailwind v4 + TypeScript strict mode.
+- globals.css uses `@import "tailwindcss"` + `@import "shadcn/tailwind.css"` (Tailwind v4 syntax).
+- lucide-react is included via shadcn Nova preset — no separate install needed.
