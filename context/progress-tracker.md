@@ -4,15 +4,16 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Foundation / Design System
+- Editor Chrome
 
 ## Current Goal
 
-- Feature 02: Authentication (Clerk) and route protection.
+- Feature 03: Authentication (Clerk) and route protection.
 
 ## Completed
 
 - Feature 01: Design System — shadcn/ui initialized (base-nova preset, Base UI + Lucide), primitive components installed (Button, Card, Dialog, Input, Tabs, Textarea, ScrollArea), `lib/utils.ts` with `cn()` created, `globals.css` configured with dark-only theme (all project CSS variables + shadcn token overrides), `<html class="dark">` set for dark-variant activation. Build passes clean.
+- Feature 02: Editor Chrome — `components/editor/editor-navbar.tsx` (fixed-height navbar with left/center/right sections, sidebar toggle using `PanelLeftOpen`/`PanelLeftClose`, dark `bg-surface` background with bottom border) and `components/editor/project-sidebar.tsx` (floating overlay sidebar that slides in from the left without pushing page content, header with title + close, shadcn `Tabs` for My Projects / Shared with empty placeholders, full-width `New Project` CTA with `Plus` icon). Dialog pattern available via existing `components/ui/dialog.tsx` (Title, Description, Header, Footer slots — uses globals.css tokens). TypeScript and ESLint pass clean.
 
 ## In Progress
 
@@ -20,7 +21,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Feature 02: Authentication (Clerk) and route protection.
+- Feature 03: Authentication (Clerk) and route protection.
 
 ## Open Questions
 
