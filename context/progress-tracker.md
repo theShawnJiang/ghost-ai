@@ -4,17 +4,18 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Authentication
+- Projects
 
 ## Current Goal
 
-- Feature 04: TBD.
+- Feature 04: Project Dialogs — `/editor` home screen empty state, Create/Rename/Delete dialogs, and sidebar project item actions backed by mock data only (no API calls or persistence).
 
 ## Completed
 
 - Feature 01: Design System — shadcn/ui initialized (base-nova preset, Base UI + Lucide), primitive components installed (Button, Card, Dialog, Input, Tabs, Textarea, ScrollArea), `lib/utils.ts` with `cn()` created, `globals.css` configured with dark-only theme (all project CSS variables + shadcn token overrides), `<html class="dark">` set for dark-variant activation. Build passes clean.
 - Feature 02: Editor Chrome — `components/editor/editor-navbar.tsx` (fixed-height navbar with left/center/right sections, sidebar toggle using `PanelLeftOpen`/`PanelLeftClose`, dark `bg-surface` background with bottom border) and `components/editor/project-sidebar.tsx` (floating overlay sidebar that slides in from the left without pushing page content, header with title + close, shadcn `Tabs` for My Projects / Shared with empty placeholders, full-width `New Project` CTA with `Plus` icon). Dialog pattern available via existing `components/ui/dialog.tsx` (Title, Description, Header, Footer slots — uses globals.css tokens). TypeScript and ESLint pass clean.
 - Feature 03: Authentication (Clerk) and route protection — `app/layout.tsx` wraps the tree in `ClerkProvider` with `@clerk/ui/themes` `dark` as base and `appearance.variables` overridden via project CSS tokens (`var(--bg-surface)`, `var(--accent-primary)`, etc.). `proxy.ts` at the project root uses `clerkMiddleware` + `createRouteMatcher` to keep `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `NEXT_PUBLIC_CLERK_SIGN_UP_URL` public and call `auth.protect()` on everything else. Sign-in (`app/sign-in/[[...sign-in]]/page.tsx`) and sign-up (`app/sign-up/[[...sign-up]]/page.tsx`) render Clerk's `<SignIn>` / `<SignUp>` inside a shared `components/auth/auth-panel.tsx` two-panel layout — left feature blurb (lg+ only), right centered form, single-column on small screens. `app/page.tsx` redirects authenticated users to `/editor` and unauthenticated users to `/sign-in`. Editor navbar right section now renders Clerk's `<UserButton />`. `@clerk/ui` installed. Build passes clean.
+- Feature 04: Project Dialogs — `/editor` home screen now renders a centered empty state (heading, description, `New Project` button with `Plus` icon) when no project is open. `hooks/use-project-dialogs.ts` is a single hook managing dialog mode (`create | rename | delete | null`), the active target, form name state, and a simulated `isSubmitting` flag. Three app-level dialogs in `components/editor/` consume that hook: `create-project-dialog.tsx` (name input + live slug preview via `lib/slug.ts`), `rename-project-dialog.tsx` (prefilled + auto-focused input, current name shown in description, Enter submits via native form, dirty-check disables submit when unchanged), and `delete-project-dialog.tsx` (no input, destructive-variant confirm). `components/editor/project-sidebar.tsx` now renders mock data from `lib/mock-projects.ts` (owned + shared) with hover-revealed Pencil/Trash icons on owned rows only — shared rows are read-only. Mobile gets a `md:hidden` backdrop scrim button behind the sidebar; tapping it closes the sidebar. Sidebar `New Project` and editor-home `New Project` both call `dialogs.openCreate()`. No API calls, no persistence — submit just simulates a brief loading state and closes. Build, type check, and lint all pass clean.
 
 ## In Progress
 
@@ -22,7 +23,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Feature 04: TBD.
+- Feature 05: TBD.
 
 ## Open Questions
 
