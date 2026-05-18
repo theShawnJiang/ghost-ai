@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 05: Prisma — project data models, Prisma client singleton, and first migration.
+- Feature 06: Project API Routes — REST endpoints for project CRUD with auth and ownership enforcement.
 
 ## Completed
 
@@ -18,13 +18,15 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 04: Project Dialogs — `/editor` home screen now renders a centered empty state (heading, description, `New Project` button with `Plus` icon) when no project is open. `hooks/use-project-dialogs.ts` is a single hook managing dialog mode (`create | rename | delete | null`), the active target, form name state, and a simulated `isSubmitting` flag. Three app-level dialogs in `components/editor/` consume that hook: `create-project-dialog.tsx` (name input + live slug preview via `lib/slug.ts`), `rename-project-dialog.tsx` (prefilled + auto-focused input, current name shown in description, Enter submits via native form, dirty-check disables submit when unchanged), and `delete-project-dialog.tsx` (no input, destructive-variant confirm). `components/editor/project-sidebar.tsx` now renders mock data from `lib/mock-projects.ts` (owned + shared) with hover-revealed Pencil/Trash icons on owned rows only — shared rows are read-only. Mobile gets a `md:hidden` backdrop scrim button behind the sidebar; tapping it closes the sidebar. Sidebar `New Project` and editor-home `New Project` both call `dialogs.openCreate()`. No API calls, no persistence — submit just simulates a brief loading state and closes. Build, type check, and lint all pass clean.
 - Feature 05: Prisma — `prisma/models/project.prisma` defines a `ProjectStatus` enum (`DRAFT`, `ARCHIVED`) and two models: `Project` (cuid id, `ownerId` Clerk user, `name`, optional `description`, `status` defaulting to `DRAFT`, optional `canvasJsonPath`, `createdAt` / `updatedAt`, indexes on `ownerId` and `createdAt`) and `ProjectCollaborator` (cuid id, cascade-deleting `project` relation, `email`, `createdAt`, unique `[projectId, email]`, indexes on `email` and `[projectId, createdAt]`). `lib/prisma.ts` exports a single `prisma` instance cached on `globalThis` in non-production, instantiated from `app/generated/prisma/client` — when `DATABASE_URL` starts with `prisma+postgres://` it passes `accelerateUrl`, otherwise it wires `@prisma/adapter-pg`'s `PrismaPg` adapter. `prisma.config.ts` now loads `.env.local` (in addition to `.env`) so Prisma CLI commands pick up the project's existing env file. Initial migration `prisma/migrations/20260515013601_init` applied successfully; `npm run build` and `npm run lint` pass clean.
 
+- Feature 06: Project API Routes — `app/api/projects/route.ts` exports `GET` (list current user's projects ordered by `createdAt` desc) and `POST` (create project, defaults missing name to `"Untitled Project"`, uses schema's cuid ID strategy). `app/api/projects/[projectId]/route.ts` exports `PATCH` (rename project, requires non-empty `name` in body) and `DELETE` (remove project). All routes use `auth()` from `@clerk/nextjs/server` — unauthenticated requests return `401`. Rename and delete verify `project.ownerId === userId` — non-owner mutations return `403`, missing projects return `404`. `params` is `Promise<{ projectId: string }>` per Next.js 16 convention. `npm run build` passes clean.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Feature 06: TBD.
+- Feature 07: TBD.
 
 ## Open Questions
 
