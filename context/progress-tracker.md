@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 06: Project API Routes — REST endpoints for project CRUD with auth and ownership enforcement.
+- Feature 08: TBD.
 
 ## Completed
 
@@ -20,13 +20,15 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 06: Project API Routes — `app/api/projects/route.ts` exports `GET` (list current user's projects ordered by `createdAt` desc) and `POST` (create project, defaults missing name to `"Untitled Project"`, uses schema's cuid ID strategy). `app/api/projects/[projectId]/route.ts` exports `PATCH` (rename project, requires non-empty `name` in body) and `DELETE` (remove project). All routes use `auth()` from `@clerk/nextjs/server` — unauthenticated requests return `401`. Rename and delete verify `project.ownerId === userId` — non-owner mutations return `403`, missing projects return `404`. `params` is `Promise<{ projectId: string }>` per Next.js 16 convention. `npm run build` passes clean.
 
+- Feature 07: Wire Editor Home — `app/editor/page.tsx` is now a server component that fetches owned + shared projects via `lib/projects.ts#getProjectsForUser()` (uses Clerk `auth()` for `ownerId` and `currentUser().primaryEmailAddress` to match `ProjectCollaborator.email` for shared projects) and renders `components/editor/editor-home.tsx`. `hooks/use-project-actions.ts` replaces the old dialog-only hook — it manages dialog mode/target/name + `isSubmitting`, generates a short base36 suffix once per create-dialog open, computes `roomId = ${slug}-${suffix}`, and wires the three mutations: create `POST /api/projects` with `{ id: roomId, name }` then `router.push(/editor/${id})`; rename `PATCH /api/projects/[id]` then `router.refresh()`; delete `DELETE /api/projects/[id]` then `router.push("/editor")` when on the active workspace pathname (`/editor/[id]`) or `router.refresh()` otherwise. `POST /api/projects` now accepts an optional client-supplied `id` so the project ID and Liveblocks room ID stay aligned. `create-project-dialog.tsx` shows the live room-ID preview (`Room ID` label, `your-project-xxxxxx` placeholder). `project-sidebar.tsx` now takes typed `owned`/`shared` `Project[]` props and drops the `isOwner` discriminator. `lib/mock-projects.ts` and `hooks/use-project-dialogs.ts` removed. `npm run build` passes clean.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Feature 07: TBD.
+- Feature 08: TBD.
 
 ## Open Questions
 
