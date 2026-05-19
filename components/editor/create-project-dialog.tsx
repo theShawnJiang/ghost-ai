@@ -12,11 +12,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { toSlug } from "@/lib/slug"
 
 interface CreateProjectDialogProps {
   open: boolean
   name: string
+  roomId: string
   isSubmitting: boolean
   onNameChange: (next: string) => void
   onClose: () => void
@@ -26,12 +26,12 @@ interface CreateProjectDialogProps {
 export function CreateProjectDialog({
   open,
   name,
+  roomId,
   isSubmitting,
   onNameChange,
   onClose,
   onSubmit,
 }: CreateProjectDialogProps) {
-  const slug = toSlug(name)
   const trimmed = name.trim()
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -73,9 +73,9 @@ export function CreateProjectDialog({
               className="text-copy-primary"
             />
             <div className="flex items-center gap-2 text-xs text-copy-muted">
-              <span>Slug</span>
+              <span>Room ID</span>
               <code className="rounded-md bg-subtle px-2 py-0.5 font-mono text-copy-secondary">
-                {slug || "your-project"}
+                {roomId || "your-project-xxxxxx"}
               </code>
             </div>
           </div>

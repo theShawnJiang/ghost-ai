@@ -27,9 +27,11 @@ export async function POST(request: Request) {
     typeof body.name === "string" && body.name.trim()
       ? body.name.trim()
       : "Untitled Project";
+  const id =
+    typeof body.id === "string" && body.id.trim() ? body.id.trim() : undefined;
 
   const project = await prisma.project.create({
-    data: { ownerId: userId, name },
+    data: { ownerId: userId, name, ...(id ? { id } : {}) },
   });
 
   return Response.json(project, { status: 201 });

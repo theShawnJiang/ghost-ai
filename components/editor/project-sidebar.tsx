@@ -2,6 +2,7 @@
 
 import { Pencil, Plus, Trash2, X } from "lucide-react"
 
+import type { Project } from "@/app/generated/prisma/client"
 import { Button } from "@/components/ui/button"
 import {
   Tabs,
@@ -10,28 +11,26 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
-import type { MockProject } from "@/lib/mock-projects"
 
 interface ProjectSidebarProps {
   isOpen: boolean
   onClose: () => void
-  projects: MockProject[]
+  owned: Project[]
+  shared: Project[]
   onCreate: () => void
-  onRename: (project: MockProject) => void
-  onDelete: (project: MockProject) => void
+  onRename: (project: Project) => void
+  onDelete: (project: Project) => void
 }
 
 export function ProjectSidebar({
   isOpen,
   onClose,
-  projects,
+  owned,
+  shared,
   onCreate,
   onRename,
   onDelete,
 }: ProjectSidebarProps) {
-  const owned = projects.filter((project) => project.isOwner)
-  const shared = projects.filter((project) => !project.isOwner)
-
   return (
     <>
       <button
@@ -116,16 +115,17 @@ export function ProjectSidebar({
 }
 
 interface ProjectRowProps {
-  project: MockProject
+  project: Project
   onRename?: () => void
   onDelete?: () => void
 }
 
 function ProjectRow({ project, onRename, onDelete }: ProjectRowProps) {
+  const isOwner = Boolean(onRename && onDelete)
   return (
     <li className="group/row flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-copy-secondary transition-colors hover:bg-elevated hover:text-copy-primary">
       <span className="flex-1 truncate">{project.name}</span>
-      {project.isOwner && onRename && onDelete && (
+      {isOwner && onRename && onDelete && (
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100 focus-within:opacity-100">
           <Button
             variant="ghost"
