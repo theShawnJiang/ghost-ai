@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 08: TBD.
+- Feature 09: TBD.
 
 ## Completed
 
@@ -22,13 +22,15 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 07: Wire Editor Home — `app/editor/page.tsx` is now a server component that fetches owned + shared projects via `lib/projects.ts#getProjectsForUser()` (uses Clerk `auth()` for `ownerId` and `currentUser().primaryEmailAddress` to match `ProjectCollaborator.email` for shared projects) and renders `components/editor/editor-home.tsx`. `hooks/use-project-actions.ts` replaces the old dialog-only hook — it manages dialog mode/target/name + `isSubmitting`, generates a short base36 suffix once per create-dialog open, computes `roomId = ${slug}-${suffix}`, and wires the three mutations: create `POST /api/projects` with `{ id: roomId, name }` then `router.push(/editor/${id})`; rename `PATCH /api/projects/[id]` then `router.refresh()`; delete `DELETE /api/projects/[id]` then `router.push("/editor")` when on the active workspace pathname (`/editor/[id]`) or `router.refresh()` otherwise. `POST /api/projects` now accepts an optional client-supplied `id` so the project ID and Liveblocks room ID stay aligned. `create-project-dialog.tsx` shows the live room-ID preview (`Room ID` label, `your-project-xxxxxx` placeholder). `project-sidebar.tsx` now takes typed `owned`/`shared` `Project[]` props and drops the `isOwner` discriminator. `lib/mock-projects.ts` and `hooks/use-project-dialogs.ts` removed. `npm run build` passes clean.
 
+- Feature 08: Editor Workspace Shell — `app/editor/[roomId]/page.tsx` is a server component that resolves identity via `lib/project-access.ts#getCurrentIdentity()` (Clerk `auth()` + `currentUser().primaryEmailAddress`), redirects unauthenticated users to `/sign-in`, then calls `getAccessibleProject(roomId, identity)` which returns the project when `ownerId === userId` or when a matching `ProjectCollaborator` row exists for the user's primary email — missing or unauthorized projects render `components/editor/access-denied.tsx` (centered `Lock` icon, message, `Back to projects` link). `components/editor/editor-workspace.tsx` is the client shell: full-viewport flex column with the shared `EditorNavbar` on top, the existing `ProjectSidebar` as a left overlay, a centered "Canvas coming soon" placeholder in the main area, and a slide-out right `<aside>` AI sidebar placeholder (width animates 0 ↔ w-80, content stub only). `EditorNavbar` gains optional `projectName` (centered truncated title), `onShare` (renders a `Share2` "Share" ghost button), and `isAiSidebarOpen`/`onToggleAiSidebar` (renders a `Sparkles` toggle that highlights with `bg-ai/10 text-ai-text` when open) — when those props are omitted the home navbar renders unchanged. `ProjectSidebar` accepts optional `activeProjectId` and the matching row in either tab is highlighted with `bg-accent-dim text-brand`. All three project dialogs and `useProjectActions` are reused inside the workspace shell unchanged. Build and lint both pass clean.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Feature 08: TBD.
+- Feature 09: TBD.
 
 ## Open Questions
 

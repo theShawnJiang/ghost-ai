@@ -1,24 +1,33 @@
 "use client"
 
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { PanelLeftClose, PanelLeftOpen, Share2, Sparkles } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
 
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 interface EditorNavbarProps {
   isSidebarOpen: boolean
   onToggleSidebar: () => void
+  projectName?: string
+  onShare?: () => void
+  isAiSidebarOpen?: boolean
+  onToggleAiSidebar?: () => void
 }
 
 export function EditorNavbar({
   isSidebarOpen,
   onToggleSidebar,
+  projectName,
+  onShare,
+  isAiSidebarOpen,
+  onToggleAiSidebar,
 }: EditorNavbarProps) {
   const ToggleIcon = isSidebarOpen ? PanelLeftClose : PanelLeftOpen
 
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-surface-border bg-surface px-3">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-1 items-center gap-2">
         <Button
           variant="ghost"
           size="icon-sm"
@@ -28,8 +37,33 @@ export function EditorNavbar({
           <ToggleIcon />
         </Button>
       </div>
-      <div className="flex items-center" />
-      <div className="flex items-center">
+      <div className="flex min-w-0 flex-1 items-center justify-center">
+        {projectName ? (
+          <span className="max-w-full truncate text-sm font-medium text-copy-primary">
+            {projectName}
+          </span>
+        ) : null}
+      </div>
+      <div className="flex flex-1 items-center justify-end gap-1">
+        {onShare ? (
+          <Button variant="ghost" size="sm" onClick={onShare}>
+            <Share2 />
+            Share
+          </Button>
+        ) : null}
+        {onToggleAiSidebar ? (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onToggleAiSidebar}
+            aria-label={isAiSidebarOpen ? "Close AI sidebar" : "Open AI sidebar"}
+            className={cn(
+              isAiSidebarOpen && "bg-ai/10 text-ai-text"
+            )}
+          >
+            <Sparkles />
+          </Button>
+        ) : null}
         <UserButton />
       </div>
     </header>

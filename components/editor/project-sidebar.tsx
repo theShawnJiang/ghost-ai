@@ -20,6 +20,7 @@ interface ProjectSidebarProps {
   onCreate: () => void
   onRename: (project: Project) => void
   onDelete: (project: Project) => void
+  activeProjectId?: string
 }
 
 export function ProjectSidebar({
@@ -30,6 +31,7 @@ export function ProjectSidebar({
   onCreate,
   onRename,
   onDelete,
+  activeProjectId,
 }: ProjectSidebarProps) {
   return (
     <>
@@ -83,6 +85,7 @@ export function ProjectSidebar({
                   <ProjectRow
                     key={project.id}
                     project={project}
+                    isActive={project.id === activeProjectId}
                     onRename={() => onRename(project)}
                     onDelete={() => onDelete(project)}
                   />
@@ -96,7 +99,11 @@ export function ProjectSidebar({
             ) : (
               <ul className="flex flex-col gap-1 pb-2">
                 {shared.map((project) => (
-                  <ProjectRow key={project.id} project={project} />
+                  <ProjectRow
+                    key={project.id}
+                    project={project}
+                    isActive={project.id === activeProjectId}
+                  />
                 ))}
               </ul>
             )}
@@ -116,14 +123,22 @@ export function ProjectSidebar({
 
 interface ProjectRowProps {
   project: Project
+  isActive?: boolean
   onRename?: () => void
   onDelete?: () => void
 }
 
-function ProjectRow({ project, onRename, onDelete }: ProjectRowProps) {
+function ProjectRow({ project, isActive, onRename, onDelete }: ProjectRowProps) {
   const isOwner = Boolean(onRename && onDelete)
   return (
-    <li className="group/row flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-copy-secondary transition-colors hover:bg-elevated hover:text-copy-primary">
+    <li
+      className={cn(
+        "group/row flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm transition-colors",
+        isActive
+          ? "bg-accent-dim text-brand"
+          : "text-copy-secondary hover:bg-elevated hover:text-copy-primary"
+      )}
+    >
       <span className="flex-1 truncate">{project.name}</span>
       {isOwner && onRename && onDelete && (
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100 focus-within:opacity-100">
