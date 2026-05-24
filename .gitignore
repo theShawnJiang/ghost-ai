@@ -42,5 +42,6 @@ next-env.d.ts
 
 # local agent tooling
 /.agents/
+.claude/settings.local.json
 
 /app/generated/prisma
