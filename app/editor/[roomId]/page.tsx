@@ -22,5 +22,12 @@ export default async function EditorRoomPage({ params }: EditorRoomPageProps) {
 
   const { owned, shared } = await getProjectsForUser()
 
-  return <EditorWorkspace project={project} owned={owned} shared={shared} />
+  return (
+    <EditorWorkspace
+      project={project}
+      owned={owned}
+      shared={shared}
+      isOwner={project.ownerId === identity.userId}
+    />
+  )
 }
