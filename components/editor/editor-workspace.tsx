@@ -9,23 +9,28 @@ import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog"
 import { EditorNavbar } from "@/components/editor/editor-navbar"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { RenameProjectDialog } from "@/components/editor/rename-project-dialog"
+import { ShareDialog } from "@/components/editor/share-dialog"
 import { cn } from "@/lib/utils"
 import { useProjectActions } from "@/hooks/use-project-actions"
+import { useShareDialog } from "@/hooks/use-share-dialog"
 
 interface EditorWorkspaceProps {
   project: Project
   owned: Project[]
   shared: Project[]
+  isOwner: boolean
 }
 
 export function EditorWorkspace({
   project,
   owned,
   shared,
+  isOwner,
 }: EditorWorkspaceProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false)
   const actions = useProjectActions()
+  const share = useShareDialog(project.id)
 
   return (
     <div className="flex h-screen flex-col bg-base">
@@ -33,9 +38,7 @@ export function EditorWorkspace({
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((open) => !open)}
         projectName={project.name}
-        onShare={() => {
-          /* sharing wired up in a later feature */
-        }}
+        onShare={share.open}
         isAiSidebarOpen={isAiSidebarOpen}
         onToggleAiSidebar={() => setIsAiSidebarOpen((open) => !open)}
       />
@@ -86,6 +89,8 @@ export function EditorWorkspace({
           </div>
         </aside>
       </div>
+
+      <ShareDialog share={share} isOwner={isOwner} />
 
       <CreateProjectDialog
         open={actions.mode === "create"}

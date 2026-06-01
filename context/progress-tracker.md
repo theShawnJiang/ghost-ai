@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 09: TBD.
+- Feature 10: TBD.
 
 ## Completed
 
@@ -24,13 +24,15 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 08: Editor Workspace Shell — `app/editor/[roomId]/page.tsx` is a server component that resolves identity via `lib/project-access.ts#getCurrentIdentity()` (Clerk `auth()` + `currentUser().primaryEmailAddress`), redirects unauthenticated users to `/sign-in`, then calls `getAccessibleProject(roomId, identity)` which returns the project when `ownerId === userId` or when a matching `ProjectCollaborator` row exists for the user's primary email — missing or unauthorized projects render `components/editor/access-denied.tsx` (centered `Lock` icon, message, `Back to projects` link). `components/editor/editor-workspace.tsx` is the client shell: full-viewport flex column with the shared `EditorNavbar` on top, the existing `ProjectSidebar` as a left overlay, a centered "Canvas coming soon" placeholder in the main area, and a slide-out right `<aside>` AI sidebar placeholder (width animates 0 ↔ w-80, content stub only). `EditorNavbar` gains optional `projectName` (centered truncated title), `onShare` (renders a `Share2` "Share" ghost button), and `isAiSidebarOpen`/`onToggleAiSidebar` (renders a `Sparkles` toggle that highlights with `bg-ai/10 text-ai-text` when open) — when those props are omitted the home navbar renders unchanged. `ProjectSidebar` accepts optional `activeProjectId` and the matching row in either tab is highlighted with `bg-accent-dim text-brand`. All three project dialogs and `useProjectActions` are reused inside the workspace shell unchanged. Build and lint both pass clean.
 
+- Feature 09: Share Dialog — `components/editor/share-dialog.tsx` is a presentational dialog opened from the editor navbar `Share` button (existing `onShare` prop, wired to `share.open`). Layout matches the product mock: a "Share project" header, a `Workspace link` card with a secondary-variant `Copy link` button (copies `window.location.href`, flips to `Copied!` for 2s), an owner-only invite row (mail-icon `Input` inside an `bg-elevated` field + teal-outline `Invite` button), and a `People with access` list with an `N total` count. Each member renders as a bordered `rounded-2xl` row (avatar, name, email); the owner row carries a teal `Owner` pill (`bg-accent-dim text-brand`) and has no remove button. `hooks/use-share-dialog.ts` owns all state/actions for a `projectId`: `open()` (fired from the click handler, not an effect — avoids `react-hooks/set-state-in-effect`) fetches members, plus `invite`, `remove`, `close`, exposing `isLoading`/`isInviting`/`removingEmail`/`error`. `lib/collaborators.ts` is the shared server module: `normalizeEmail()` (trim + lowercase + regex) and `listProjectMembers(project)` which returns the owner first (enriched via `clerkClient().users.getUser(ownerId)`) then `ProjectCollaborator` rows (enriched via `getUserList({ emailAddress })`), each typed `ProjectMember { id, email, name, imageUrl, role: "owner" | "collaborator" }`. Clerk lookups are best-effort (try/catch) and fall back to email/id-only entries when a user isn't found or Clerk is unreachable. `app/api/projects/[projectId]/collaborators/route.ts` exports `GET` (owner or collaborator — access verified via `getCurrentIdentity` + `getAccessibleProject`), `POST` (owner-only invite, upsert on `projectId_email`), and `DELETE` (owner-only remove via `deleteMany`); all three return `{ members }` so the client refreshes from the response. Ownership is enforced server-side: non-owner POST/DELETE return `403`. `EditorWorkspace` takes an `isOwner` prop (computed in `app/editor/[roomId]/page.tsx` as `project.ownerId === identity.userId`). No local user table added. `npm run build` and `npm run lint` pass clean.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Feature 09: TBD.
+- Feature 10: TBD.
 
 ## Open Questions
 
@@ -44,6 +46,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Ghost AI design tokens (`--bg-base`, `--text-primary`, `--accent-primary`, etc.) defined on `:root` and mapped to Tailwind utilities via `@theme inline` (e.g. `bg-base`, `text-copy-primary`, `text-brand`, `bg-accent-dim`).
 - Next.js 16 renames `middleware.ts` to `proxy.ts` — Clerk's `clerkMiddleware` is still exported under that name from `@clerk/nextjs/server` but is consumed as the default export of `proxy.ts` at the project root.
 - Clerk appearance uses `theme` (not `baseTheme`) in `@clerk/ui` v1.x; override Clerk's `variables` with project CSS custom properties so the auth UI tracks the rest of the design system with zero hardcoded colors.
+- Collaborators are stored by email only (`ProjectCollaborator`) — no local user table. The owner is not stored as a collaborator row; "people with access" = owner (resolved from `project.ownerId` via Clerk `getUser`) + collaborator rows. Display names and avatars are resolved at read time from Clerk (`getUser` for the owner, `getUserList({ emailAddress })` for collaborators), with email/id-only fallback when no Clerk user exists or Clerk is unreachable.
 
 ## Session Notes
 
