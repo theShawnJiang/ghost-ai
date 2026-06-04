@@ -27,8 +27,8 @@ export function EditorWorkspace({
   shared,
   isOwner,
 }: EditorWorkspaceProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(true)
   const actions = useProjectActions()
   const share = useShareDialog(project.id)
 
@@ -42,7 +42,7 @@ export function EditorWorkspace({
         isAiSidebarOpen={isAiSidebarOpen}
         onToggleAiSidebar={() => setIsAiSidebarOpen((open) => !open)}
       />
-      <div className="relative flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 gap-3 overflow-hidden p-3">
         <ProjectSidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -58,7 +58,7 @@ export function EditorWorkspace({
           }
         />
 
-        <main className="flex h-full flex-1 items-center justify-center bg-base px-6">
+        <main className="flex h-full flex-1 items-center justify-center overflow-hidden rounded-2xl border border-surface-border bg-surface px-6">
           <div className="flex flex-col items-center gap-3 text-center text-copy-muted">
             <p className="text-sm font-medium text-copy-secondary">
               Canvas coming soon
@@ -74,10 +74,10 @@ export function EditorWorkspace({
         <aside
           aria-hidden={!isAiSidebarOpen}
           className={cn(
-            "h-full w-80 max-w-[85vw] shrink-0 border-l border-surface-border bg-surface transition-[width,opacity] duration-200 ease-out",
+            "h-full w-80 max-w-[85vw] shrink-0 overflow-hidden rounded-2xl border border-surface-border bg-surface transition-[width,opacity] duration-200 ease-out",
             isAiSidebarOpen
               ? "opacity-100"
-              : "pointer-events-none w-0 border-l-0 opacity-0"
+              : "pointer-events-none w-0 border-0 opacity-0"
           )}
         >
           <div className="flex h-12 shrink-0 items-center gap-2 border-b border-surface-border px-4">

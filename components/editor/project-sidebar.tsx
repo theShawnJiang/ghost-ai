@@ -34,90 +34,75 @@ export function ProjectSidebar({
   activeProjectId,
 }: ProjectSidebarProps) {
   return (
-    <>
-      <button
-        type="button"
-        aria-hidden="true"
-        tabIndex={-1}
-        onClick={onClose}
-        className={cn(
-          "absolute inset-0 z-30 bg-black/40 backdrop-blur-[2px] transition-opacity duration-200 md:hidden",
-          isOpen
-            ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0"
-        )}
-      />
-
-      <aside
-        aria-hidden={!isOpen}
-        className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 z-40 flex w-80 max-w-[85vw] flex-col border-r border-surface-border bg-surface/95 shadow-2xl backdrop-blur-sm transition-transform duration-200 ease-out",
-          isOpen ? "pointer-events-auto translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="flex h-12 shrink-0 items-center justify-between border-b border-surface-border px-4">
-          <h2 className="text-sm font-medium text-copy-primary">Projects</h2>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onClose}
-            aria-label="Close projects sidebar"
-          >
-            <X />
-          </Button>
-        </div>
-
-        <Tabs
-          defaultValue="mine"
-          className="flex flex-1 flex-col gap-3 overflow-hidden px-4 pt-4"
+    <aside
+      aria-hidden={!isOpen}
+      className={cn(
+        "flex h-full w-80 max-w-[85vw] shrink-0 flex-col overflow-hidden rounded-2xl border border-surface-border bg-surface transition-[width,opacity] duration-200 ease-out",
+        isOpen ? "opacity-100" : "pointer-events-none w-0 border-0 opacity-0"
+      )}
+    >
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-surface-border px-4">
+        <h2 className="text-sm font-medium text-copy-primary">Projects</h2>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onClose}
+          aria-label="Close projects sidebar"
         >
-          <TabsList className="w-full">
-            <TabsTrigger value="mine">My Projects</TabsTrigger>
-            <TabsTrigger value="shared">Shared</TabsTrigger>
-          </TabsList>
+          <X />
+        </Button>
+      </div>
 
-          <TabsContent value="mine" className="flex-1 overflow-y-auto">
-            {owned.length === 0 ? (
-              <EmptyState message="No projects yet" />
-            ) : (
-              <ul className="flex flex-col gap-1 pb-2">
-                {owned.map((project) => (
-                  <ProjectRow
-                    key={project.id}
-                    project={project}
-                    isActive={project.id === activeProjectId}
-                    onRename={() => onRename(project)}
-                    onDelete={() => onDelete(project)}
-                  />
-                ))}
-              </ul>
-            )}
-          </TabsContent>
-          <TabsContent value="shared" className="flex-1 overflow-y-auto">
-            {shared.length === 0 ? (
-              <EmptyState message="No shared projects" />
-            ) : (
-              <ul className="flex flex-col gap-1 pb-2">
-                {shared.map((project) => (
-                  <ProjectRow
-                    key={project.id}
-                    project={project}
-                    isActive={project.id === activeProjectId}
-                  />
-                ))}
-              </ul>
-            )}
-          </TabsContent>
-        </Tabs>
+      <Tabs
+        defaultValue="mine"
+        className="flex flex-1 flex-col gap-3 overflow-hidden px-4 pt-4"
+      >
+        <TabsList className="w-full">
+          <TabsTrigger value="mine">My Projects</TabsTrigger>
+          <TabsTrigger value="shared">Shared</TabsTrigger>
+        </TabsList>
 
-        <div className="shrink-0 border-t border-surface-border p-3">
-          <Button className="w-full" onClick={onCreate}>
-            <Plus />
-            New Project
-          </Button>
-        </div>
-      </aside>
-    </>
+        <TabsContent value="mine" className="flex-1 overflow-y-auto">
+          {owned.length === 0 ? (
+            <EmptyState message="No projects yet" />
+          ) : (
+            <ul className="flex flex-col gap-1 pb-2">
+              {owned.map((project) => (
+                <ProjectRow
+                  key={project.id}
+                  project={project}
+                  isActive={project.id === activeProjectId}
+                  onRename={() => onRename(project)}
+                  onDelete={() => onDelete(project)}
+                />
+              ))}
+            </ul>
+          )}
+        </TabsContent>
+        <TabsContent value="shared" className="flex-1 overflow-y-auto">
+          {shared.length === 0 ? (
+            <EmptyState message="No shared projects" />
+          ) : (
+            <ul className="flex flex-col gap-1 pb-2">
+              {shared.map((project) => (
+                <ProjectRow
+                  key={project.id}
+                  project={project}
+                  isActive={project.id === activeProjectId}
+                />
+              ))}
+            </ul>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      <div className="shrink-0 border-t border-surface-border p-3">
+        <Button className="w-full" onClick={onCreate}>
+          <Plus />
+          New Project
+        </Button>
+      </div>
+    </aside>
   )
 }
 
