@@ -33,6 +33,7 @@ export function EditorNavbar({
           size="icon-sm"
           onClick={onToggleSidebar}
           aria-label={isSidebarOpen ? "Close projects sidebar" : "Open projects sidebar"}
+          className="cursor-pointer"
         >
           <ToggleIcon />
         </Button>
@@ -46,7 +47,12 @@ export function EditorNavbar({
       </div>
       <div className="flex flex-1 items-center justify-end gap-1">
         {onShare ? (
-          <Button variant="ghost" size="sm" onClick={onShare}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onShare}
+            className="cursor-pointer"
+          >
             <Share2 />
             Share
           </Button>
@@ -58,6 +64,7 @@ export function EditorNavbar({
             onClick={onToggleAiSidebar}
             aria-label={isAiSidebarOpen ? "Close AI sidebar" : "Open AI sidebar"}
             className={cn(
+              "cursor-pointer",
               isAiSidebarOpen && "bg-ai/10 text-ai-text"
             )}
           >
