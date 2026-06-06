@@ -189,7 +189,11 @@ function MemberRow({ member, canRemove, isRemoving, onRemove }: MemberRowProps) 
             <span className="shrink-0 rounded-full bg-accent-dim px-2 py-0.5 text-[10px] font-semibold tracking-wide text-brand uppercase">
               Owner
             </span>
-          ) : null}
+          ) : (
+            <span className="shrink-0 rounded-full bg-subtle px-2 py-0.5 text-[10px] font-semibold tracking-wide text-copy-muted uppercase">
+              Collaborator
+            </span>
+          )}
         </div>
         {showEmail ? (
           <span className="truncate text-xs text-copy-muted">

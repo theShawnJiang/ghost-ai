@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+import { useState } from "react"
 import { Pencil, Plus, Trash2, X } from "lucide-react"
 
 import type { Project } from "@/app/generated/prisma/client"
@@ -33,6 +35,10 @@ export function ProjectSidebar({
   onDelete,
   activeProjectId,
 }: ProjectSidebarProps) {
+  const [tab, setTab] = useState(() =>
+    shared.some((project) => project.id === activeProjectId) ? "shared" : "mine"
+  )
+
   return (
     <aside
       aria-hidden={!isOpen}
@@ -54,7 +60,8 @@ export function ProjectSidebar({
       </div>
 
       <Tabs
-        defaultValue="mine"
+        value={tab}
+        onValueChange={setTab}
         className="flex flex-1 flex-col gap-3 overflow-hidden px-4 pt-4"
       >
         <TabsList className="w-full">
@@ -124,7 +131,12 @@ function ProjectRow({ project, isActive, onRename, onDelete }: ProjectRowProps) 
           : "text-copy-secondary hover:bg-elevated hover:text-copy-primary"
       )}
     >
-      <span className="flex-1 truncate">{project.name}</span>
+      <Link
+        href={`/editor/${project.id}`}
+        className="flex-1 truncate outline-none"
+      >
+        {project.name}
+      </Link>
       {isOwner && onRename && onDelete && (
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/row:opacity-100 focus-within:opacity-100">
           <Button
