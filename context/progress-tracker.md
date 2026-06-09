@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 10: TBD.
+- Feature 11: TBD.
 
 ## Completed
 
@@ -34,6 +34,8 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Navbar pointer cursors — `components/editor/editor-navbar.tsx` adds `cursor-pointer` to the projects-sidebar toggle, `Share`, and AI (`Sparkles`) buttons. Tailwind v4's Preflight no longer sets `cursor: pointer` on buttons and the generated `components/ui/button.tsx` (which must not be modified) omits it, so buttons otherwise show the default cursor. Applied per-button rather than globally. Type check and lint pass clean.
 
+- Feature 10: Liveblocks Setup — realtime collaboration infrastructure. `liveblocks.config.ts` (project root) augments the global `Liveblocks` interface with `Presence` (`cursor: { x; y } | null`, `isThinking: boolean`) and `UserMeta` (`id` + `info: { name; avatar; color }`); unused scaffold slots (Storage/RoomEvent/ThreadMetadata/RoomInfo) were removed so they fall back to Liveblocks defaults and don't trip the `no-empty-object-type` lint rule. `lib/liveblocks.ts` exports a `getLiveblocks()` lazy-cached node client (cached on `globalThis` like `lib/prisma.ts`; lazy because the `Liveblocks` constructor validates the secret-key format, so eager construction broke `next build` when the key is absent) plus `getCursorColor(userId)`, which deterministically maps a user id to one of a fixed 10-color palette via a simple string hash. `app/api/liveblocks-auth/route.ts` exports `POST`: requires Clerk auth (`getCurrentIdentity`, `401` when missing), reads `{ room }` from the body (the project id is the room id), verifies access via `getAccessibleProject` (`403` when not owner/collaborator), `getOrCreateRoom(projectId, { defaultAccesses: [] })` (creates only if needed), then `prepareSession(userId, { userInfo: { name, avatar, color } })` — name resolved from Clerk `currentUser()` (fullName → first+last → email → "Anonymous"), avatar from `imageUrl`, color from `getCursorColor` — grants `FULL_ACCESS` to the room and returns the session token. `@liveblocks/node@^3.19.5` was installed (the other `@liveblocks/*` packages were already present, but the node SDK the auth route needs was not). Requires `LIVEBLOCKS_SECRET_KEY` (`sk_…`) in `.env.local` at runtime — now set (gitignored). `npm run build` and `npm run lint` pass clean.
+
 - Workspace soft-UI refinement — `components/editor/editor-workspace.tsx` now wraps the three regions in a padded content row (`flex flex-1 gap-3 overflow-hidden p-3`) so the left Projects panel, center canvas, and right AI panel render as separate inline `rounded-2xl` cards (`border-surface-border`, `bg-surface`). Both sidebars now default to open (`useState(true)`). `components/editor/project-sidebar.tsx` was converted from an absolute overlay drawer (with mobile backdrop scrim) into an inline collapsible panel that collapses by animating width to `0` and fading out — matching the AI aside pattern — so the canvas reflows beside it instead of being covered. `ui-context.md` Layout Patterns updated to document the inline three-panel soft-UI shell. Build, type check, and lint pass clean.
 
 ## In Progress
@@ -42,7 +44,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Feature 10: TBD.
+- Feature 11: TBD.
 
 ## Open Questions
 
