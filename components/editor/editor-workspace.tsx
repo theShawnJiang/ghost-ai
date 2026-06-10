@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Sparkles } from "lucide-react"
 
 import type { Project } from "@/app/generated/prisma/client"
+import { CanvasRoom } from "@/components/editor/canvas/canvas-room"
 import { CreateProjectDialog } from "@/components/editor/create-project-dialog"
 import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog"
 import { EditorNavbar } from "@/components/editor/editor-navbar"
@@ -58,17 +59,8 @@ export function EditorWorkspace({
           }
         />
 
-        <main className="flex h-full flex-1 items-center justify-center overflow-hidden rounded-2xl border border-surface-border bg-surface px-6">
-          <div className="flex flex-col items-center gap-3 text-center text-copy-muted">
-            <p className="text-sm font-medium text-copy-secondary">
-              Canvas coming soon
-            </p>
-            <p className="max-w-sm text-xs text-copy-muted">
-              The collaborative canvas for{" "}
-              <span className="text-copy-primary">{project.name}</span> will
-              render here.
-            </p>
-          </div>
+        <main className="h-full flex-1 overflow-hidden rounded-2xl border border-surface-border bg-base">
+          <CanvasRoom roomId={project.id} />
         </main>
 
         <aside

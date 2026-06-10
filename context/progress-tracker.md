@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 11: TBD.
+- Feature 11: Base Canvas — Liveblocks-backed React Flow collaborative canvas.
 
 ## Completed
 
@@ -36,6 +36,8 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 10: Liveblocks Setup — realtime collaboration infrastructure. `liveblocks.config.ts` (project root) augments the global `Liveblocks` interface with `Presence` (`cursor: { x; y } | null`, `isThinking: boolean`) and `UserMeta` (`id` + `info: { name; avatar; color }`); unused scaffold slots (Storage/RoomEvent/ThreadMetadata/RoomInfo) were removed so they fall back to Liveblocks defaults and don't trip the `no-empty-object-type` lint rule. `lib/liveblocks.ts` exports a `getLiveblocks()` lazy-cached node client (cached on `globalThis` like `lib/prisma.ts`; lazy because the `Liveblocks` constructor validates the secret-key format, so eager construction broke `next build` when the key is absent) plus `getCursorColor(userId)`, which deterministically maps a user id to one of a fixed 10-color palette via a simple string hash. `app/api/liveblocks-auth/route.ts` exports `POST`: requires Clerk auth (`getCurrentIdentity`, `401` when missing), reads `{ room }` from the body (the project id is the room id), verifies access via `getAccessibleProject` (`403` when not owner/collaborator), `getOrCreateRoom(projectId, { defaultAccesses: [] })` (creates only if needed), then `prepareSession(userId, { userInfo: { name, avatar, color } })` — name resolved from Clerk `currentUser()` (fullName → first+last → email → "Anonymous"), avatar from `imageUrl`, color from `getCursorColor` — grants `FULL_ACCESS` to the room and returns the session token. `@liveblocks/node@^3.19.5` was installed (the other `@liveblocks/*` packages were already present, but the node SDK the auth route needs was not). Requires `LIVEBLOCKS_SECRET_KEY` (`sk_…`) in `.env.local` at runtime — now set (gitignored). `npm run build` and `npm run lint` pass clean.
 
+- Feature 11: Base Canvas — replaced the workspace canvas placeholder with a Liveblocks-backed React Flow canvas. `types/canvas.ts` holds the shared canvas types: custom type identifiers `CANVAS_NODE_TYPE` (`"canvasNode"`) / `CANVAS_EDGE_TYPE` (`"canvasEdge"`), the `NODE_COLORS` palette (8 dark-fill/vivid-text pairs) with `NodeColor` union + `DEFAULT_NODE_COLOR`, the `NODE_SHAPES` list (6 shapes) with `NodeShape` union + `DEFAULT_NODE_SHAPE`, `CanvasNodeData` (`label`, `color`, `shape`; extends `Record<string, unknown>` to satisfy React Flow's `Node` data constraint), and `CanvasNode`/`CanvasEdge` (typed `@xyflow/react` `Node`/`Edge`). `components/editor/canvas/canvas-room.tsx` is the client wrapper: `LiveblocksProvider` (`authEndpoint="/api/liveblocks-auth"`) → `RoomProvider` (room id = `project.id`, `initialPresence: { cursor: null, isThinking: false }`) → a minimal class `CanvasErrorBoundary` (no Liveblocks/react-error-boundary export exists) wrapping `ClientSideSuspense` with a `Connecting to canvas…` loader fallback; the error fallback shows a `WifiOff` "Couldn't connect" message. `components/editor/canvas/canvas-flow.tsx` wires React Flow to Liveblocks via `useLiveblocksFlow<CanvasNode, CanvasEdge>({ suspense: true, nodes: { initial: [] }, edges: { initial: [] } })`, passing the synced `nodes`/`edges` + `onNodesChange`/`onEdgesChange`/`onConnect`/`onDelete` into `<ReactFlow>` with `connectionMode={ConnectionMode.Loose}`, `fitView`, `<Cursors />`, `<MiniMap />`, and a dots `<Background variant={BackgroundVariant.Dots} />`; it imports `@xyflow/react/dist/style.css`, `@liveblocks/react-ui/styles.css`, and `@liveblocks/react-flow/styles.css`. `components/editor/editor-workspace.tsx` `<main>` now renders `<CanvasRoom roomId={project.id} />` on a `bg-base` card instead of the "Canvas coming soon" placeholder. Per scope: no controls, no custom node/edge rendering, no persistence logic, no AI behavior yet. `npm run build` and `npm run lint` pass clean.
+
 - Workspace soft-UI refinement — `components/editor/editor-workspace.tsx` now wraps the three regions in a padded content row (`flex flex-1 gap-3 overflow-hidden p-3`) so the left Projects panel, center canvas, and right AI panel render as separate inline `rounded-2xl` cards (`border-surface-border`, `bg-surface`). Both sidebars now default to open (`useState(true)`). `components/editor/project-sidebar.tsx` was converted from an absolute overlay drawer (with mobile backdrop scrim) into an inline collapsible panel that collapses by animating width to `0` and fading out — matching the AI aside pattern — so the canvas reflows beside it instead of being covered. `ui-context.md` Layout Patterns updated to document the inline three-panel soft-UI shell. Build, type check, and lint pass clean.
 
 ## In Progress
@@ -44,7 +46,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Feature 11: TBD.
+- Feature 12: TBD.
 
 ## Open Questions
 
