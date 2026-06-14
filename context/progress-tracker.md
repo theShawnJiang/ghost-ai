@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 12: Shape Panel — drag shapes from a bottom toolbar to create canvas nodes.
+- Feature 13: Node Shape — proper shape rendering for canvas nodes plus a drag preview.
 
 ## Completed
 
@@ -42,13 +42,15 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 12: Shape Panel — drag-to-create canvas nodes. `types/canvas.ts` gains `ShapeSize`, `SHAPE_DEFAULT_SIZES` (per-shape defaults: rectangle/pill wider than tall, circle square, diamond slightly larger for label room), `SHAPE_DRAG_MIME` (`"application/ghost-shape"`), and `ShapeDragPayload` (`{ shape, width, height }`). `components/editor/canvas/shape-panel.tsx` is a floating pill toolbar pinned bottom-center (`absolute bottom-6 left-1/2 -translate-x-1/2`, `rounded-full bg-surface/90` + blur) with six `draggable` Lucide icon buttons (`RectangleHorizontal`, `Diamond`, `Circle`, `Pill`, `Cylinder`, `Hexagon`); `onDragStart` writes the shape + default size as JSON onto `dataTransfer` under `SHAPE_DRAG_MIME`. `components/editor/canvas/canvas-node.tsx` (`CanvasNodeView`) is the basic renderer registered for `CANVAS_NODE_TYPE` — every shape draws as a simple bordered rectangle with the label centered (shape-specific visuals deferred). `components/editor/canvas/canvas-flow.tsx` now wraps the canvas in `ReactFlowProvider` (so the inner `CanvasFlowInner` can call `useReactFlow().screenToFlowPosition`), registers `nodeTypes`, and the relative wrapper handles `onDragOver` (preventDefault + `dropEffect = "move"`) / `onDrop` (parse payload, convert screen → flow coords, build a `CanvasNode` with empty label, `DEFAULT_NODE_COLOR`, dragged shape, payload width/height, id `${shape}-${Date.now()}-${counter}` via a `useRef` counter, then `onNodesChange([{ type: "add", item }])` to sync into Liveblocks). `npm run build` and `npm run lint` pass clean.
 
+- Feature 13: Node Shape — proper shape rendering + drag preview. `components/editor/canvas/node-shape.tsx` (`NodeShapeFrame`) is the shared renderer for a node's shape visuals + centered label, used by both the React Flow node renderer and the shape-panel drag preview so they stay identical. It fills its parent (caller controls size), looks up the fill/text pair from `NODE_COLORS` via a derived `COLOR_MAP`, and keeps the border subtle at rest (`${text}40`, 1.5px) and brighter when selected (full `text`, 2.5px). CSS shapes (rectangle = `rounded-xl`, pill/circle = `rounded-full`) render as bordered divs; SVG shapes (diamond/hexagon polygons, cylinder = two cubic-bezier paths for the silhouette + top rim) render in a `viewBox="0 0 100 100"` `preserveAspectRatio="none"` SVG with `vectorEffect="non-scaling-stroke"` so they stretch to the node box while keeping a uniform stroke, with the label overlaid via an absolute centered div. `components/editor/canvas/canvas-node.tsx` (`CanvasNodeView`) now just delegates to `NodeShapeFrame`, passing `data.shape`/`data.color`/`data.label` and React Flow's `selected`. `components/editor/canvas/shape-panel.tsx` adds a native drag preview: one off-screen ghost per shape (rendered, not `display:none`, at `fixed -left-[9999px]` so the browser can snapshot it synchronously) sized to `SHAPE_DEFAULT_SIZES` and rendered with `NodeShapeFrame` (`DEFAULT_NODE_COLOR`, empty label); `onDragStart` calls `dataTransfer.setDragImage(ghost, width/2, height/2)` so the ghost matches the dragged shape/size and stays cursor-attached, auto-removed by the browser on drop/cancel. Per scope: shape panel layout, drop-to-create flow, resize, and label editing are unchanged. `npm run build` and `npm run lint` pass clean.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Feature 13: TBD.
+- Feature 14: TBD.
 
 ## Open Questions
 
