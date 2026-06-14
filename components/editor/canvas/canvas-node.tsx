@@ -2,17 +2,21 @@
 
 import { type NodeProps } from "@xyflow/react"
 
+import { NodeShapeFrame } from "@/components/editor/canvas/node-shape"
 import type { CanvasNode } from "@/types/canvas"
 
 /**
- * Basic renderer for the custom canvas node type. For this unit every shape is
- * drawn as a simple bordered rectangle with the label centered — shape-specific
- * visuals are added in a later feature.
+ * Renderer for the custom canvas node type. Delegates the shape visuals to the
+ * shared {@link NodeShapeFrame} so the on-canvas node and the shape-panel drag
+ * preview render identically.
  */
-export function CanvasNodeView({ data }: NodeProps<CanvasNode>) {
+export function CanvasNodeView({ data, selected }: NodeProps<CanvasNode>) {
   return (
-    <div className="flex h-full w-full items-center justify-center rounded-xl border border-surface-border bg-surface px-3 py-2 text-center text-sm text-copy-primary">
-      {data.label}
-    </div>
+    <NodeShapeFrame
+      shape={data.shape}
+      color={data.color}
+      label={data.label}
+      selected={selected}
+    />
   )
 }
