@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 11: Base Canvas — Liveblocks-backed React Flow collaborative canvas.
+- Feature 12: Shape Panel — drag shapes from a bottom toolbar to create canvas nodes.
 
 ## Completed
 
@@ -40,13 +40,15 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Workspace soft-UI refinement — `components/editor/editor-workspace.tsx` now wraps the three regions in a padded content row (`flex flex-1 gap-3 overflow-hidden p-3`) so the left Projects panel, center canvas, and right AI panel render as separate inline `rounded-2xl` cards (`border-surface-border`, `bg-surface`). Both sidebars now default to open (`useState(true)`). `components/editor/project-sidebar.tsx` was converted from an absolute overlay drawer (with mobile backdrop scrim) into an inline collapsible panel that collapses by animating width to `0` and fading out — matching the AI aside pattern — so the canvas reflows beside it instead of being covered. `ui-context.md` Layout Patterns updated to document the inline three-panel soft-UI shell. Build, type check, and lint pass clean.
 
+- Feature 12: Shape Panel — drag-to-create canvas nodes. `types/canvas.ts` gains `ShapeSize`, `SHAPE_DEFAULT_SIZES` (per-shape defaults: rectangle/pill wider than tall, circle square, diamond slightly larger for label room), `SHAPE_DRAG_MIME` (`"application/ghost-shape"`), and `ShapeDragPayload` (`{ shape, width, height }`). `components/editor/canvas/shape-panel.tsx` is a floating pill toolbar pinned bottom-center (`absolute bottom-6 left-1/2 -translate-x-1/2`, `rounded-full bg-surface/90` + blur) with six `draggable` Lucide icon buttons (`RectangleHorizontal`, `Diamond`, `Circle`, `Pill`, `Cylinder`, `Hexagon`); `onDragStart` writes the shape + default size as JSON onto `dataTransfer` under `SHAPE_DRAG_MIME`. `components/editor/canvas/canvas-node.tsx` (`CanvasNodeView`) is the basic renderer registered for `CANVAS_NODE_TYPE` — every shape draws as a simple bordered rectangle with the label centered (shape-specific visuals deferred). `components/editor/canvas/canvas-flow.tsx` now wraps the canvas in `ReactFlowProvider` (so the inner `CanvasFlowInner` can call `useReactFlow().screenToFlowPosition`), registers `nodeTypes`, and the relative wrapper handles `onDragOver` (preventDefault + `dropEffect = "move"`) / `onDrop` (parse payload, convert screen → flow coords, build a `CanvasNode` with empty label, `DEFAULT_NODE_COLOR`, dragged shape, payload width/height, id `${shape}-${Date.now()}-${counter}` via a `useRef` counter, then `onNodesChange([{ type: "add", item }])` to sync into Liveblocks). `npm run build` and `npm run lint` pass clean.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Feature 12: TBD.
+- Feature 13: TBD.
 
 ## Open Questions
 
