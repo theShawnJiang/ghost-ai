@@ -43,6 +43,33 @@ export type NodeShape = (typeof NODE_SHAPES)[number]
 
 export const DEFAULT_NODE_SHAPE: NodeShape = "rectangle"
 
+/** Default on-canvas dimensions for each shape, in canvas units. */
+export interface ShapeSize {
+  width: number
+  height: number
+}
+
+/**
+ * Sensible default sizes per shape: rectangles are wider than tall, circles are
+ * square, and diamonds are slightly larger so labels have room.
+ */
+export const SHAPE_DEFAULT_SIZES: Record<NodeShape, ShapeSize> = {
+  rectangle: { width: 160, height: 80 },
+  diamond: { width: 150, height: 110 },
+  circle: { width: 100, height: 100 },
+  pill: { width: 160, height: 64 },
+  cylinder: { width: 130, height: 100 },
+  hexagon: { width: 150, height: 90 },
+}
+
+/** MIME type used to carry a shape across an HTML5 drag-and-drop. */
+export const SHAPE_DRAG_MIME = "application/ghost-shape"
+
+/** Payload carried when dragging a shape from the shape panel onto the canvas. */
+export interface ShapeDragPayload extends ShapeSize {
+  shape: NodeShape
+}
+
 /**
  * Data carried by every canvas node.
  */
