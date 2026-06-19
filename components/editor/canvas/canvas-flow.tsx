@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useRef, type DragEvent } from "react"
+import { useCallback, useMemo, useRef, type DragEvent } from "react"
 import {
   Background,
   BackgroundVariant,
@@ -12,6 +12,10 @@ import {
 } from "@xyflow/react"
 import { Cursors, useLiveblocksFlow } from "@liveblocks/react-flow"
 
+import {
+  CanvasActionsProvider,
+  type CanvasActions,
+} from "@/components/editor/canvas/canvas-actions"
 import { CanvasNodeView } from "@/components/editor/canvas/canvas-node"
 import { ShapePanel } from "@/components/editor/canvas/shape-panel"
 import {
@@ -50,8 +54,25 @@ function CanvasFlowInner() {
       nodes: { initial: [] },
       edges: { initial: [] },
     })
-  const { screenToFlowPosition } = useReactFlow()
+  const { screenToFlowPosition, getNode } = useReactFlow<CanvasNode, CanvasEdge>()
   const nodeCounter = useRef(0)
+
+  // Node renderers update labels through this, so edits flow through
+  // `onNodesChange` (the Liveblocks mutation) and sync to collaborative storage.
+  const updateNodeLabel = useCallback<CanvasActions["updateNodeLabel"]>(
+    (id, label) => {
+      const node = getNode(id)
+      if (!node) return
+      onNodesChange([
+        { type: "replace", id, item: { ...node, data: { ...node.data, label } } },
+      ])
+    },
+    [getNode, onNodesChange],
+  )
+  const actions = useMemo<CanvasActions>(
+    () => ({ updateNodeLabel }),
+    [updateNodeLabel],
+  )
 
   const onDragOver = useCallback((event: DragEvent) => {
     event.preventDefault()
@@ -92,27 +113,29 @@ function CanvasFlowInner() {
   )
 
   return (
-    <div
-      className="relative h-full w-full"
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-    >
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onDelete={onDelete}
-        connectionMode={ConnectionMode.Loose}
-        fitView
+    <CanvasActionsProvider value={actions}>
+      <div
+        className="relative h-full w-full"
+        onDragOver={onDragOver}
+        onDrop={onDrop}
       >
-        <Cursors />
-        <MiniMap />
-        <Background variant={BackgroundVariant.Dots} />
-      </ReactFlow>
-      <ShapePanel />
-    </div>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onDelete={onDelete}
+          connectionMode={ConnectionMode.Loose}
+          fitView
+        >
+          <Cursors />
+          <MiniMap />
+          <Background variant={BackgroundVariant.Dots} />
+        </ReactFlow>
+        <ShapePanel />
+      </div>
+    </CanvasActionsProvider>
   )
 }

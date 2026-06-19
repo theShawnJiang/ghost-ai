@@ -26,6 +26,11 @@ export type NodeColor = (typeof NODE_COLORS)[number]["id"]
 
 export const DEFAULT_NODE_COLOR: NodeColor = "neutral"
 
+/** Resolve a node color id to its fill/text pair, falling back to the default. */
+export function getNodeColor(color: NodeColor): (typeof NODE_COLORS)[number] {
+  return NODE_COLORS.find((entry) => entry.id === color) ?? NODE_COLORS[0]
+}
+
 /**
  * Supported node shapes. Complex shapes are rendered as inline SVGs in a later
  * feature; this list is the source of truth for the available shapes.
@@ -61,6 +66,10 @@ export const SHAPE_DEFAULT_SIZES: Record<NodeShape, ShapeSize> = {
   cylinder: { width: 130, height: 100 },
   hexagon: { width: 150, height: 90 },
 }
+
+/** Smallest dimensions a node can be resized to, in canvas units. */
+export const MIN_NODE_WIDTH = 80
+export const MIN_NODE_HEIGHT = 48
 
 /** MIME type used to carry a shape across an HTML5 drag-and-drop. */
 export const SHAPE_DRAG_MIME = "application/ghost-shape"

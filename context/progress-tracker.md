@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 13: Node Shape — proper shape rendering for canvas nodes plus a drag preview.
+- Feature 14: Node Editing — resizing and inline label editing for canvas nodes.
 
 ## Completed
 
@@ -44,13 +44,15 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 13: Node Shape — proper shape rendering + drag preview. `components/editor/canvas/node-shape.tsx` (`NodeShapeFrame`) is the shared renderer for a node's shape visuals + centered label, used by both the React Flow node renderer and the shape-panel drag preview so they stay identical. It fills its parent (caller controls size), looks up the fill/text pair from `NODE_COLORS` via a derived `COLOR_MAP`, and keeps the border subtle at rest (`${text}40`, 1.5px) and brighter when selected (full `text`, 2.5px). CSS shapes (rectangle = `rounded-xl`, pill/circle = `rounded-full`) render as bordered divs; SVG shapes (diamond/hexagon polygons, cylinder = two cubic-bezier paths for the silhouette + top rim) render in a `viewBox="0 0 100 100"` `preserveAspectRatio="none"` SVG with `vectorEffect="non-scaling-stroke"` so they stretch to the node box while keeping a uniform stroke, with the label overlaid via an absolute centered div. `components/editor/canvas/canvas-node.tsx` (`CanvasNodeView`) now just delegates to `NodeShapeFrame`, passing `data.shape`/`data.color`/`data.label` and React Flow's `selected`. `components/editor/canvas/shape-panel.tsx` adds a native drag preview: one off-screen ghost per shape (rendered, not `display:none`, at `fixed -left-[9999px]` so the browser can snapshot it synchronously) sized to `SHAPE_DEFAULT_SIZES` and rendered with `NodeShapeFrame` (`DEFAULT_NODE_COLOR`, empty label); `onDragStart` calls `dataTransfer.setDragImage(ghost, width/2, height/2)` so the ghost matches the dragged shape/size and stays cursor-attached, auto-removed by the browser on drop/cancel. Per scope: shape panel layout, drop-to-create flow, resize, and label editing are unchanged. `npm run build` and `npm run lint` pass clean.
 
+- Feature 14: Node Editing — resizing + inline label editing. `types/canvas.ts` gains `getNodeColor(color)` (resolves a `NodeColor` id to its fill/text pair, falling back to the default) and `MIN_NODE_WIDTH` (80) / `MIN_NODE_HEIGHT` (48). `components/editor/canvas/canvas-actions.tsx` is a small React context (`CanvasActionsProvider` + `useCanvasActions()`) exposing `updateNodeLabel(id, label)` — node renderers can't reach `onNodesChange` directly, and React Flow's `updateNodeData`/`setNodes` only mutate the local store (Liveblocks controls the nodes via the `nodes` prop), so label edits must be dispatched through `onNodesChange`. `components/editor/canvas/canvas-flow.tsx` builds that callback inside `CanvasFlowInner` (`getNode(id)` from `useReactFlow<CanvasNode, CanvasEdge>()`, then `onNodesChange([{ type: "replace", id, item: { ...node, data: { ...node.data, label } } }])`) and wraps the canvas in `CanvasActionsProvider`. `components/editor/canvas/canvas-node.tsx` (`CanvasNodeView`) now renders a `<NodeResizer isVisible={selected} minWidth/minHeight color="var(--border-subtle)">` with subtle 8px square handles (`bg-surface` + `border-subtle`) — resize dimension changes sync automatically through `onNodesChange` (the `"dimensions"` case in Liveblocks' `applyNodeChanges`). Double-clicking a node (stopping propagation so the pane doesn't zoom) sets local `editing` state and overlays a centered, auto-sizing (`[field-sizing:content]`) `<textarea>` carrying `nodrag nopan` so text interactions don't drag the node or pan the canvas; the underlying `NodeShapeFrame` label is blanked while editing (`label={editing ? "" : data.label}`) to avoid duplicate text / layout shift, and an empty, non-editing node shows a muted centered `Add label` placeholder. The textarea is value-controlled by `data.label`, dispatching `updateNodeLabel` on every keystroke (live collaborative update), and closes on blur or `Escape`. `NodeShapeFrame` and the shape panel / drag preview are unchanged per scope. `npm run build` and `npm run lint` pass clean.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Feature 14: TBD.
+- Feature 15: TBD.
 
 ## Open Questions
 
