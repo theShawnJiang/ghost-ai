@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 14: Node Editing — resizing and inline label editing for canvas nodes.
+- Feature 15: Node Connections — connect canvas nodes together with edges.
 
 ## Completed
 
@@ -46,13 +46,15 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 14: Node Editing — resizing + inline label editing. `types/canvas.ts` gains `getNodeColor(color)` (resolves a `NodeColor` id to its fill/text pair, falling back to the default) and `MIN_NODE_WIDTH` (80) / `MIN_NODE_HEIGHT` (48). `components/editor/canvas/canvas-actions.tsx` is a small React context (`CanvasActionsProvider` + `useCanvasActions()`) exposing `updateNodeLabel(id, label)` — node renderers can't reach `onNodesChange` directly, and React Flow's `updateNodeData`/`setNodes` only mutate the local store (Liveblocks controls the nodes via the `nodes` prop), so label edits must be dispatched through `onNodesChange`. `components/editor/canvas/canvas-flow.tsx` builds that callback inside `CanvasFlowInner` (`getNode(id)` from `useReactFlow<CanvasNode, CanvasEdge>()`, then `onNodesChange([{ type: "replace", id, item: { ...node, data: { ...node.data, label } } }])`) and wraps the canvas in `CanvasActionsProvider`. `components/editor/canvas/canvas-node.tsx` (`CanvasNodeView`) now renders a `<NodeResizer isVisible={selected} minWidth/minHeight color="var(--border-subtle)">` with subtle 8px square handles (`bg-surface` + `border-subtle`) — resize dimension changes sync automatically through `onNodesChange` (the `"dimensions"` case in Liveblocks' `applyNodeChanges`). Double-clicking a node (stopping propagation so the pane doesn't zoom) sets local `editing` state and overlays a centered, auto-sizing (`[field-sizing:content]`) `<textarea>` carrying `nodrag nopan` so text interactions don't drag the node or pan the canvas; the underlying `NodeShapeFrame` label is blanked while editing (`label={editing ? "" : data.label}`) to avoid duplicate text / layout shift, and an empty, non-editing node shows a muted centered `Add label` placeholder. The textarea is value-controlled by `data.label`, dispatching `updateNodeLabel` on every keystroke (live collaborative update), and closes on blur or `Escape`. `NodeShapeFrame` and the shape panel / drag preview are unchanged per scope. `npm run build` and `npm run lint` pass clean.
 
+- Feature 15: Node Connections — connecting nodes with styled edges. The canvas already wired `onConnect`/`onEdgesChange`/`onDelete` (Feature 11) and `connectionMode={ConnectionMode.Loose}`, but nodes had no `Handle`s so connections could never be started, and edges had no styling. `types/canvas.ts` gains `EDGE_COLOR` (`#f8fafc`) and `EDGE_STROKE_WIDTH` (1.5) — kept as raw values in the canvas type module like `NODE_COLORS`, since the canvas visual palette sits outside the globals.css token system. `components/editor/canvas/canvas-node.tsx` (`CanvasNodeView`) renders four `<Handle type="source">` (one per `Position`, with the `Position` value as the handle id so same-type handles stay unique) inside the node wrapper; in `ConnectionMode.Loose` a single per-side handle acts as both source and target, so a connection can be dragged between any two sides. Handles are small (10px) white circles with a `--border-default` ring, `opacity-0` at rest and revealed via `group-hover:opacity-100` (the wrapper gained the `group` class) — they stay in the DOM/interactive while transparent so Loose connection detection still works. `components/editor/canvas/canvas-flow.tsx` adds a `defaultEdgeOptions` (`type: "smoothstep"`, `markerEnd` `MarkerType.ArrowClosed` in `EDGE_COLOR`, `style` thin `EDGE_COLOR` stroke) passed to `<ReactFlow>`. This matters because Liveblocks' `onConnect` stores only a bare `{ source, target }` edge (no type/style); React Flow merges `defaultEdgeOptions` into every rendered edge (`{ ...defaultEdgeOptions, ...edge }` in the edge wrapper), so collaborative edges render styled while storage stays minimal. Per scope: node shape/resize/label editing, the shape panel, drag preview, and drop-to-create are unchanged; no edge labels or per-edge styling controls. `npm run build` and `npm run lint` pass clean.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Feature 15: TBD.
+- Feature 16: TBD.
 
 ## Open Questions
 
