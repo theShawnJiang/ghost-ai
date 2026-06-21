@@ -71,6 +71,15 @@ export const SHAPE_DEFAULT_SIZES: Record<NodeShape, ShapeSize> = {
 export const MIN_NODE_WIDTH = 80
 export const MIN_NODE_HEIGHT = 48
 
+/**
+ * Edge styling. Edges are visually secondary to nodes: a thin smooth-step line
+ * in a near-white color with an arrow marker at the target end. See
+ * `ui-context.md`. Applied via React Flow `defaultEdgeOptions` so every edge —
+ * including the bare ones created by Liveblocks on connect — renders the same.
+ */
+export const EDGE_COLOR = "#f8fafc"
+export const EDGE_STROKE_WIDTH = 1.5
+
 /** MIME type used to carry a shape across an HTML5 drag-and-drop. */
 export const SHAPE_DRAG_MIME = "application/ghost-shape"
 

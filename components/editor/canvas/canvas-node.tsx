@@ -6,7 +6,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from "react"
-import { NodeResizer, type NodeProps } from "@xyflow/react"
+import { Handle, NodeResizer, Position, type NodeProps } from "@xyflow/react"
 
 import { useCanvasActions } from "@/components/editor/canvas/canvas-actions"
 import { NodeShapeFrame } from "@/components/editor/canvas/node-shape"
@@ -18,6 +18,19 @@ import {
 } from "@/types/canvas"
 
 const LABEL_PLACEHOLDER = "Add label"
+
+/**
+ * One connection handle per side. With `ConnectionMode.Loose` on the canvas a
+ * single handle per side acts as both source and target, so a connection can be
+ * dragged between any two sides. The `Position` value doubles as the handle id
+ * (handles of the same type need unique ids).
+ */
+const CONNECTION_HANDLES = [
+  Position.Top,
+  Position.Right,
+  Position.Bottom,
+  Position.Left,
+] as const
 
 /**
  * Renderer for the custom canvas node type. Delegates the shape visuals to the
@@ -65,7 +78,26 @@ export function CanvasNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
         }}
         lineStyle={{ borderColor: "var(--border-subtle)" }}
       />
-      <div className="relative h-full w-full" onDoubleClick={startEditing}>
+      <div className="group relative h-full w-full" onDoubleClick={startEditing}>
+        {/* Small white circular connection handles on every side, hidden at
+            rest and revealed on node hover. */}
+        {CONNECTION_HANDLES.map((position) => (
+          <Handle
+            key={position}
+            id={position}
+            type="source"
+            position={position}
+            className="opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: "9999px",
+              background: "#ffffff",
+              border: "1px solid var(--border-default)",
+            }}
+          />
+        ))}
+
         {/* Blank the underlying label while editing so the textarea is the only
             visible copy — avoids duplicate text and any layout shift. */}
         <NodeShapeFrame

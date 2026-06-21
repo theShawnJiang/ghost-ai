@@ -5,10 +5,12 @@ import {
   Background,
   BackgroundVariant,
   ConnectionMode,
+  MarkerType,
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  type DefaultEdgeOptions,
 } from "@xyflow/react"
 import { Cursors, useLiveblocksFlow } from "@liveblocks/react-flow"
 
@@ -21,6 +23,8 @@ import { ShapePanel } from "@/components/editor/canvas/shape-panel"
 import {
   CANVAS_NODE_TYPE,
   DEFAULT_NODE_COLOR,
+  EDGE_COLOR,
+  EDGE_STROKE_WIDTH,
   SHAPE_DRAG_MIME,
   type CanvasEdge,
   type CanvasNode,
@@ -32,6 +36,22 @@ import "@liveblocks/react-ui/styles.css"
 import "@liveblocks/react-flow/styles.css"
 
 const nodeTypes = { [CANVAS_NODE_TYPE]: CanvasNodeView }
+
+/**
+ * Edge defaults merged into every rendered edge by React Flow, so connections
+ * created through Liveblocks (which stores only `source`/`target`) still render
+ * as a thin near-white smooth-step line with an arrow at the target end.
+ */
+const defaultEdgeOptions: DefaultEdgeOptions = {
+  type: "smoothstep",
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+    color: EDGE_COLOR,
+    width: 18,
+    height: 18,
+  },
+  style: { stroke: EDGE_COLOR, strokeWidth: EDGE_STROKE_WIDTH },
+}
 
 /**
  * React Flow canvas backed by Liveblocks Storage. The `ReactFlowProvider`
@@ -127,6 +147,7 @@ function CanvasFlowInner() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onDelete={onDelete}
+          defaultEdgeOptions={defaultEdgeOptions}
           connectionMode={ConnectionMode.Loose}
           fitView
         >
