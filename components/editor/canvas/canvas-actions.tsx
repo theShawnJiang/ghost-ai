@@ -2,6 +2,8 @@
 
 import { createContext, useContext } from "react"
 
+import type { NodeColor } from "@/types/canvas"
+
 /**
  * Imperative canvas actions exposed to node renderers. Node updates must flow
  * through React Flow's `onNodesChange` (a Liveblocks mutation) rather than the
@@ -10,6 +12,8 @@ import { createContext, useContext } from "react"
 export interface CanvasActions {
   /** Update a node's label, syncing through the collaborative node state. */
   updateNodeLabel: (id: string, label: string) => void
+  /** Update a node's color pair, syncing through the collaborative node state. */
+  updateNodeColor: (id: string, color: NodeColor) => void
 }
 
 const CanvasActionsContext = createContext<CanvasActions | null>(null)
