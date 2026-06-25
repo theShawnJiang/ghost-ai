@@ -9,6 +9,7 @@ import {
 import { Handle, NodeResizer, Position, type NodeProps } from "@xyflow/react"
 
 import { useCanvasActions } from "@/components/editor/canvas/canvas-actions"
+import { NodeColorToolbar } from "@/components/editor/canvas/node-color-toolbar"
 import { NodeShapeFrame } from "@/components/editor/canvas/node-shape"
 import {
   MIN_NODE_HEIGHT,
@@ -39,7 +40,7 @@ const CONNECTION_HANDLES = [
  * label. All updates flow through the collaborative node state.
  */
 export function CanvasNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
-  const { updateNodeLabel } = useCanvasActions()
+  const { updateNodeLabel, updateNodeColor } = useCanvasActions()
   const [editing, setEditing] = useState(false)
 
   const { text } = getNodeColor(data.color)
@@ -79,6 +80,14 @@ export function CanvasNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
         lineStyle={{ borderColor: "var(--border-subtle)" }}
       />
       <div className="group relative h-full w-full" onDoubleClick={startEditing}>
+        {/* Floating color toolbar, shown just above the node while selected. */}
+        {selected && (
+          <NodeColorToolbar
+            activeColor={data.color}
+            onSelect={(color) => updateNodeColor(id, color)}
+          />
+        )}
+
         {/* Small white circular connection handles on every side, hidden at
             rest and revealed on node hover. */}
         {CONNECTION_HANDLES.map((position) => (

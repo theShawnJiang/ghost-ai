@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 15: Node Connections — connect canvas nodes together with edges.
+- Feature 16: Node Color Toolbar — floating swatch toolbar to recolor selected nodes.
 
 ## Completed
 
@@ -48,13 +48,15 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 15: Node Connections — connecting nodes with styled edges. The canvas already wired `onConnect`/`onEdgesChange`/`onDelete` (Feature 11) and `connectionMode={ConnectionMode.Loose}`, but nodes had no `Handle`s so connections could never be started, and edges had no styling. `types/canvas.ts` gains `EDGE_COLOR` (`#f8fafc`) and `EDGE_STROKE_WIDTH` (1.5) — kept as raw values in the canvas type module like `NODE_COLORS`, since the canvas visual palette sits outside the globals.css token system. `components/editor/canvas/canvas-node.tsx` (`CanvasNodeView`) renders four `<Handle type="source">` (one per `Position`, with the `Position` value as the handle id so same-type handles stay unique) inside the node wrapper; in `ConnectionMode.Loose` a single per-side handle acts as both source and target, so a connection can be dragged between any two sides. Handles are small (10px) white circles with a `--border-default` ring, `opacity-0` at rest and revealed via `group-hover:opacity-100` (the wrapper gained the `group` class) — they stay in the DOM/interactive while transparent so Loose connection detection still works. `components/editor/canvas/canvas-flow.tsx` adds a `defaultEdgeOptions` (`type: "smoothstep"`, `markerEnd` `MarkerType.ArrowClosed` in `EDGE_COLOR`, `style` thin `EDGE_COLOR` stroke) passed to `<ReactFlow>`. This matters because Liveblocks' `onConnect` stores only a bare `{ source, target }` edge (no type/style); React Flow merges `defaultEdgeOptions` into every rendered edge (`{ ...defaultEdgeOptions, ...edge }` in the edge wrapper), so collaborative edges render styled while storage stays minimal. Per scope: node shape/resize/label editing, the shape panel, drag preview, and drop-to-create are unchanged; no edge labels or per-edge styling controls. `npm run build` and `npm run lint` pass clean.
 
+- Feature 16: Node Color Toolbar — a floating swatch toolbar to recolor selected nodes directly on the canvas. The 8-pair palette already lived in `types/canvas.ts` as `NODE_COLORS` (dark fill + vivid paired text), and a node's `color: NodeColor` already resolves to both via `getNodeColor`, so a color change is a single `data.color` update that swaps background and text together. `components/editor/canvas/canvas-actions.tsx` `CanvasActions` gains `updateNodeColor(id, color)` alongside `updateNodeLabel`; `canvas-flow.tsx` `CanvasFlowInner` implements it the same way (`getNode(id)` then `onNodesChange([{ type: "replace", id, item: { ...node, data: { ...node.data, color } } }])`) so the edit flows through the Liveblocks mutation into collaborative storage — no server calls. `components/editor/canvas/node-color-toolbar.tsx` (`NodeColorToolbar`) is a floating pill (`absolute bottom-full left-1/2 mb-2 -translate-x-1/2`, `rounded-full bg-surface/95` + blur + `border-surface-border`) shown above the node; it carries `nodrag nopan` (and each swatch `stopPropagation`s its click) so toolbar interactions never drag the node or pan the canvas. Each `ColorSwatch` is a 20px round button filled with the pair's `fill` and an inner 8px dot in the paired `text` color (showing both colors at once); the active swatch reads as selected via a 2px full-`text` border (inactive swatches use a faint `${text}55` 1px border), and hovering shows a tight, controlled glow (`boxShadow: 0 0 6px 1px ${text}99`, low blur/spread) plus a slight scale. `components/editor/canvas/canvas-node.tsx` (`CanvasNodeView`) renders `<NodeColorToolbar>` inside the node wrapper only when `selected`, wiring `activeColor={data.color}` and `onSelect` to `updateNodeColor(id, color)`; the underlying `NodeShapeFrame` already paints fill/text from `data.color`, so the node updates immediately. Per scope: drag/drop, node selection logic, and the shape panel are unchanged; predefined themes only — no full color picker. `npm run build` passes clean.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Feature 16: TBD.
+- Feature 17: TBD.
 
 ## Open Questions
 

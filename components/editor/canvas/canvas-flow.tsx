@@ -89,9 +89,19 @@ function CanvasFlowInner() {
     },
     [getNode, onNodesChange],
   )
+  const updateNodeColor = useCallback<CanvasActions["updateNodeColor"]>(
+    (id, color) => {
+      const node = getNode(id)
+      if (!node) return
+      onNodesChange([
+        { type: "replace", id, item: { ...node, data: { ...node.data, color } } },
+      ])
+    },
+    [getNode, onNodesChange],
+  )
   const actions = useMemo<CanvasActions>(
-    () => ({ updateNodeLabel }),
-    [updateNodeLabel],
+    () => ({ updateNodeLabel, updateNodeColor }),
+    [updateNodeLabel, updateNodeColor],
   )
 
   const onDragOver = useCallback((event: DragEvent) => {
