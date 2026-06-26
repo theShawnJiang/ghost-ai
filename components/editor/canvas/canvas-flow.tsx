@@ -18,13 +18,14 @@ import {
   CanvasActionsProvider,
   type CanvasActions,
 } from "@/components/editor/canvas/canvas-actions"
+import { CanvasEdgeView } from "@/components/editor/canvas/canvas-edge"
 import { CanvasNodeView } from "@/components/editor/canvas/canvas-node"
 import { ShapePanel } from "@/components/editor/canvas/shape-panel"
 import {
+  CANVAS_EDGE_TYPE,
   CANVAS_NODE_TYPE,
   DEFAULT_NODE_COLOR,
   EDGE_COLOR,
-  EDGE_STROKE_WIDTH,
   SHAPE_DRAG_MIME,
   type CanvasEdge,
   type CanvasNode,
@@ -36,21 +37,22 @@ import "@liveblocks/react-ui/styles.css"
 import "@liveblocks/react-flow/styles.css"
 
 const nodeTypes = { [CANVAS_NODE_TYPE]: CanvasNodeView }
+const edgeTypes = { [CANVAS_EDGE_TYPE]: CanvasEdgeView }
 
 /**
  * Edge defaults merged into every rendered edge by React Flow, so connections
  * created through Liveblocks (which stores only `source`/`target`) still render
- * as a thin near-white smooth-step line with an arrow at the target end.
+ * with the custom canvas edge renderer and an arrow at the target end. The
+ * renderer owns the line stroke; only the arrow marker is defined here.
  */
 const defaultEdgeOptions: DefaultEdgeOptions = {
-  type: "smoothstep",
+  type: CANVAS_EDGE_TYPE,
   markerEnd: {
     type: MarkerType.ArrowClosed,
     color: EDGE_COLOR,
     width: 18,
     height: 18,
   },
-  style: { stroke: EDGE_COLOR, strokeWidth: EDGE_STROKE_WIDTH },
 }
 
 /**
@@ -74,7 +76,8 @@ function CanvasFlowInner() {
       nodes: { initial: [] },
       edges: { initial: [] },
     })
-  const { screenToFlowPosition, getNode } = useReactFlow<CanvasNode, CanvasEdge>()
+  const { screenToFlowPosition, getNode, getEdge } =
+    useReactFlow<CanvasNode, CanvasEdge>()
   const nodeCounter = useRef(0)
 
   // Node renderers update labels through this, so edits flow through
@@ -99,9 +102,21 @@ function CanvasFlowInner() {
     },
     [getNode, onNodesChange],
   )
+  // Edge renderers update labels through this, so edits flow through
+  // `onEdgesChange` (the Liveblocks mutation) and sync to collaborative storage.
+  const updateEdgeLabel = useCallback<CanvasActions["updateEdgeLabel"]>(
+    (id, label) => {
+      const edge = getEdge(id)
+      if (!edge) return
+      onEdgesChange([
+        { type: "replace", id, item: { ...edge, data: { ...edge.data, label } } },
+      ])
+    },
+    [getEdge, onEdgesChange],
+  )
   const actions = useMemo<CanvasActions>(
-    () => ({ updateNodeLabel, updateNodeColor }),
-    [updateNodeLabel, updateNodeColor],
+    () => ({ updateNodeLabel, updateNodeColor, updateEdgeLabel }),
+    [updateNodeLabel, updateNodeColor, updateEdgeLabel],
   )
 
   const onDragOver = useCallback((event: DragEvent) => {
@@ -153,6 +168,7 @@ function CanvasFlowInner() {
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}

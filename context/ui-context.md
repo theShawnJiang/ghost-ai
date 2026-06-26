@@ -68,7 +68,9 @@ Default node color: `#1F1F1F` with `#EDEDED` text.
 
 ### Edge Style
 
-Smooth-step path with an arrow marker. Default edge color: `#f8fafc`. Stroke width is thin — edges are visually secondary to nodes.
+Custom canvas edge renderer (`CANVAS_EDGE_TYPE`) with right-angle (smooth-step) routing, rounded ends, and an arrow marker at the target end. Default edge color: `#f8fafc`. Stroke width is thin — edges are visually secondary to nodes. Edges are dimmed at rest and brighten on hover or selection, with a wide invisible hit area so they are easy to hover and click without thickening the visible line.
+
+Double-clicking an edge edits an inline label, positioned at the path midpoint via `EdgeLabelRenderer`. Saved labels show as small pill badges; an active edge with no label shows a faint "Add label" hint. Labels save on blur, Enter, or Escape and sync through the collaborative edge data flow.
 
 ### Node Shapes
 

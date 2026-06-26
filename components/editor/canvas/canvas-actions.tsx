@@ -14,6 +14,8 @@ export interface CanvasActions {
   updateNodeLabel: (id: string, label: string) => void
   /** Update a node's color pair, syncing through the collaborative node state. */
   updateNodeColor: (id: string, color: NodeColor) => void
+  /** Update an edge's label, syncing through the collaborative edge state. */
+  updateEdgeLabel: (id: string, label: string) => void
 }
 
 const CanvasActionsContext = createContext<CanvasActions | null>(null)
