@@ -72,13 +72,19 @@ export const MIN_NODE_WIDTH = 80
 export const MIN_NODE_HEIGHT = 48
 
 /**
- * Edge styling. Edges are visually secondary to nodes: a thin smooth-step line
- * in a near-white color with an arrow marker at the target end. See
- * `ui-context.md`. Applied via React Flow `defaultEdgeOptions` so every edge —
- * including the bare ones created by Liveblocks on connect — renders the same.
+ * Edge styling. Edges are visually secondary to nodes: a thin near-white line
+ * with rounded ends and an arrow marker at the target end. See `ui-context.md`.
+ * The custom canvas edge renderer paints the line with {@link EDGE_COLOR} /
+ * {@link EDGE_STROKE_WIDTH}, dimming it at rest and brightening on hover/select.
  */
 export const EDGE_COLOR = "#f8fafc"
 export const EDGE_STROKE_WIDTH = 1.5
+
+/**
+ * Width of the invisible hit area around an edge, so edges are easy to hover and
+ * click without thickening the visible line.
+ */
+export const EDGE_INTERACTION_WIDTH = 22
 
 /** MIME type used to carry a shape across an HTML5 drag-and-drop. */
 export const SHAPE_DRAG_MIME = "application/ghost-shape"
@@ -100,8 +106,11 @@ export interface CanvasNodeData extends Record<string, unknown> {
 /** A canvas node — a React Flow `Node` of type `canvasNode`. */
 export type CanvasNode = Node<CanvasNodeData, typeof CANVAS_NODE_TYPE>
 
-/** Data carried by canvas edges (none yet). */
-export type CanvasEdgeData = Record<string, unknown>
+/** Data carried by every canvas edge. */
+export interface CanvasEdgeData extends Record<string, unknown> {
+  /** Optional inline label shown as a pill badge at the edge midpoint. */
+  label?: string
+}
 
 /** A canvas edge — a React Flow `Edge` of type `canvasEdge`. */
 export type CanvasEdge = Edge<CanvasEdgeData, typeof CANVAS_EDGE_TYPE>
