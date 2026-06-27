@@ -6,21 +6,23 @@ import {
   BackgroundVariant,
   ConnectionMode,
   MarkerType,
-  MiniMap,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
   type DefaultEdgeOptions,
 } from "@xyflow/react"
 import { Cursors, useLiveblocksFlow } from "@liveblocks/react-flow"
+import { useCanRedo, useCanUndo, useRedo, useUndo } from "@liveblocks/react"
 
 import {
   CanvasActionsProvider,
   type CanvasActions,
 } from "@/components/editor/canvas/canvas-actions"
+import { CanvasControls } from "@/components/editor/canvas/canvas-controls"
 import { CanvasEdgeView } from "@/components/editor/canvas/canvas-edge"
 import { CanvasNodeView } from "@/components/editor/canvas/canvas-node"
 import { ShapePanel } from "@/components/editor/canvas/shape-panel"
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import {
   CANVAS_EDGE_TYPE,
   CANVAS_NODE_TYPE,
@@ -76,9 +78,18 @@ function CanvasFlowInner() {
       nodes: { initial: [] },
       edges: { initial: [] },
     })
-  const { screenToFlowPosition, getNode, getEdge } =
-    useReactFlow<CanvasNode, CanvasEdge>()
+  const reactFlow = useReactFlow<CanvasNode, CanvasEdge>()
+  const { screenToFlowPosition, getNode, getEdge } = reactFlow
   const nodeCounter = useRef(0)
+
+  // Undo/redo run through Liveblocks history so they revert collaborative
+  // canvas state, not just the local React Flow store.
+  const undo = useUndo()
+  const redo = useRedo()
+  const canUndo = useCanUndo()
+  const canRedo = useCanRedo()
+
+  useKeyboardShortcuts({ reactFlow, onUndo: undo, onRedo: redo })
 
   // Node renderers update labels through this, so edits flow through
   // `onNodesChange` (the Liveblocks mutation) and sync to collaborative storage.
@@ -178,9 +189,15 @@ function CanvasFlowInner() {
           fitView
         >
           <Cursors />
-          <MiniMap />
           <Background variant={BackgroundVariant.Dots} />
         </ReactFlow>
+        <CanvasControls
+          reactFlow={reactFlow}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+        />
         <ShapePanel />
       </div>
     </CanvasActionsProvider>

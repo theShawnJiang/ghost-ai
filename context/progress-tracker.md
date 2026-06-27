@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 16: Edge Behavior — custom edges with right-angle routing, hover/selection states, and inline labels.
+- Feature 17: Canvas Ergonomics — floating zoom/undo-redo control bar plus matching keyboard shortcuts.
 
 ## Completed
 
@@ -50,13 +50,15 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 16: Edge Behavior — custom canvas edges with right-angle routing, hover/selection states, and inline labels (replaces the earlier defaultEdgeOptions-only `smoothstep` styling). The four per-side hover-revealed connection `<Handle>`s on `components/editor/canvas/canvas-node.tsx` (`CanvasNodeView`, white dots + `--border-default` ring, `group-hover:opacity-100`) stay as-is — both this feature and the canvas wiring need them. `types/canvas.ts` keeps `EDGE_COLOR` (`#f8fafc`) / `EDGE_STROKE_WIDTH` (1.5), adds `EDGE_INTERACTION_WIDTH` (22, the invisible hit area), and widens `CanvasEdgeData` to `{ label?: string }`. `components/editor/canvas/canvas-edge.tsx` (`CanvasEdgeView`) is the renderer registered for `CANVAS_EDGE_TYPE`: it derives the path + midpoint via `getSmoothStepPath` and draws a `<BaseEdge>` (thin `EDGE_COLOR` stroke, round line caps/joins, `markerEnd` arrow passed through, `interactionWidth={EDGE_INTERACTION_WIDTH}` for an easy-to-click wide invisible hit path) wrapped in a `<g>` carrying `onMouseEnter`/`onMouseLeave` (hover state) and `onDoubleClick` (start label editing) — the wide interaction path's events bubble up to the `<g>` because `.react-flow__edge` is `pointer-events: visibleStroke`. The line is dimmed (`opacity: 0.45`) at rest and full opacity when `selected || hovered`. Inline labels render through `<EdgeLabelRenderer>` at the `getSmoothStepPath` `labelX`/`labelY` (no manual midpoint math), in a `nodrag nopan pointer-events-auto` wrapper so label clicks/typing never drag the node or pan the canvas: an `[field-sizing:content]` `<input>` while editing (saves on blur, Enter, or Escape), a pill-badge `<button>` showing a saved label, or a faint dashed "Add label" hint when an active edge has no label. Edits dispatch through a new `CanvasActions.updateEdgeLabel(id, label)` — `canvas-flow.tsx` `CanvasFlowInner` implements it via `getEdge(id)` then `onEdgesChange([{ type: "replace", id, item: { ...edge, data: { ...edge.data, label } } }])` (mirrors the node label/color flow), so labels sync through collaborative edge storage. `canvas-flow.tsx` registers `edgeTypes = { [CANVAS_EDGE_TYPE]: CanvasEdgeView }` and changes `defaultEdgeOptions` to `type: CANVAS_EDGE_TYPE` (+ the `ArrowClosed` `markerEnd`; the renderer now owns the stroke, so the old `style` was dropped) so connections created through Liveblocks render via the custom edge. Per scope: node creation, the shape panel, drag preview, and the node renderer (beyond the existing handles) are unchanged. `npm run build` and `npm run lint` pass clean.
 
+- Feature 17: Canvas Ergonomics — a floating control bar wiring zoom and undo/redo to the canvas, plus matching keyboard shortcuts, and removal of the minimap. `hooks/useKeyboardShortcuts.ts` (camelCase per spec) is a client hook that takes the React Flow instance + `onUndo`/`onRedo` handlers and binds a `window` `keydown` listener: `+`/`=` zoom in, `-` zoom out (both via `reactFlow.zoomIn`/`zoomOut({ duration: ZOOM_ANIMATION_DURATION })`, exported `200`ms), `Cmd/Ctrl+Z` undo, `Cmd/Ctrl+Shift+Z` / `Cmd/Ctrl+Y` redo; an `isEditableTarget` guard skips shortcuts while focus is in an `INPUT`/`TEXTAREA`/`isContentEditable` element. `components/editor/canvas/canvas-controls.tsx` (`CanvasControls`) is a floating pill (`absolute bottom-6 left-6 z-10`, same `rounded-full border-surface-border bg-surface/90` + blur styling as the shape panel) with two groups split by a thin `w-px bg-surface-border` divider: zoom (`ZoomOut` → `Maximize` fit view → `ZoomIn`, each calling the instance with the shared `{ duration }` animation) and history (`Undo2`/`Redo2`); the shared `ControlButton` dims and disables (`disabled:opacity-40 disabled:pointer-events-none`) so Undo is disabled when `!canUndo` and Redo when `!canRedo`. `components/editor/canvas/canvas-flow.tsx` `CanvasFlowInner` now keeps the full `useReactFlow()` instance, pulls Liveblocks history via `useUndo`/`useRedo`/`useCanUndo`/`useCanRedo` from `@liveblocks/react`, calls `useKeyboardShortcuts`, renders `<CanvasControls>` beside `<ShapePanel>`, and drops the `<MiniMap>` (and its import). Per scope: shape panel, node/edge rendering, the extra canvas controls, and the Liveblocks collaborative-state setup are unchanged. `npm run build` and `npm run lint` pass clean.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Feature 17: TBD.
+- Feature 18: TBD.
 
 ## Open Questions
 
