@@ -22,7 +22,12 @@ import { CanvasControls } from "@/components/editor/canvas/canvas-controls"
 import { CanvasEdgeView } from "@/components/editor/canvas/canvas-edge"
 import { CanvasNodeView } from "@/components/editor/canvas/canvas-node"
 import { ShapePanel } from "@/components/editor/canvas/shape-panel"
-import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
+import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal"
+import type { CanvasTemplate } from "@/components/editor/starter-templates"
+import {
+  useKeyboardShortcuts,
+  ZOOM_ANIMATION_DURATION,
+} from "@/hooks/useKeyboardShortcuts"
 import {
   CANVAS_EDGE_TYPE,
   CANVAS_NODE_TYPE,
@@ -63,15 +68,29 @@ const defaultEdgeOptions: DefaultEdgeOptions = {
  * coordinate conversion) while still being the component that renders
  * `<ReactFlow>`.
  */
-export function CanvasFlow() {
+interface CanvasFlowProps {
+  templatesOpen: boolean
+  onTemplatesOpenChange: (open: boolean) => void
+}
+
+export function CanvasFlow({
+  templatesOpen,
+  onTemplatesOpenChange,
+}: CanvasFlowProps) {
   return (
     <ReactFlowProvider>
-      <CanvasFlowInner />
+      <CanvasFlowInner
+        templatesOpen={templatesOpen}
+        onTemplatesOpenChange={onTemplatesOpenChange}
+      />
     </ReactFlowProvider>
   )
 }
 
-function CanvasFlowInner() {
+function CanvasFlowInner({
+  templatesOpen,
+  onTemplatesOpenChange,
+}: CanvasFlowProps) {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, onDelete } =
     useLiveblocksFlow<CanvasNode, CanvasEdge>({
       suspense: true,
@@ -168,6 +187,27 @@ function CanvasFlowInner() {
     [screenToFlowPosition, onNodesChange],
   )
 
+  // Replace the whole canvas with a starter template: clear the current nodes
+  // and edges first, then add the template's. Both flow through the Liveblocks
+  // mutations so the import is part of the collaborative canvas state.
+  const importTemplate = useCallback(
+    (template: CanvasTemplate) => {
+      onNodesChange([
+        ...nodes.map((node) => ({ type: "remove" as const, id: node.id })),
+        ...template.nodes.map((node) => ({ type: "add" as const, item: node })),
+      ])
+      onEdgesChange([
+        ...edges.map((edge) => ({ type: "remove" as const, id: edge.id })),
+        ...template.edges.map((edge) => ({ type: "add" as const, item: edge })),
+      ])
+      // Fit once the new nodes have been committed to the React Flow store.
+      requestAnimationFrame(() => {
+        reactFlow.fitView({ duration: ZOOM_ANIMATION_DURATION })
+      })
+    },
+    [nodes, edges, onNodesChange, onEdgesChange, reactFlow],
+  )
+
   return (
     <CanvasActionsProvider value={actions}>
       <div
@@ -200,6 +240,11 @@ function CanvasFlowInner() {
         />
         <ShapePanel />
       </div>
+      <StarterTemplatesModal
+        open={templatesOpen}
+        onOpenChange={onTemplatesOpenChange}
+        onImport={importTemplate}
+      />
     </CanvasActionsProvider>
   )
 }

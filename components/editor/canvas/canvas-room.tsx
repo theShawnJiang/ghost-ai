@@ -12,19 +12,29 @@ import { CanvasFlow } from "@/components/editor/canvas/canvas-flow"
 
 interface CanvasRoomProps {
   roomId: string
+  /** Whether the starter templates import modal is open. */
+  templatesOpen: boolean
+  onTemplatesOpenChange: (open: boolean) => void
 }
 
 /**
  * Client-side canvas wrapper. Connects to the Liveblocks room for this project
  * and renders the collaborative React Flow canvas once Storage is ready.
  */
-export function CanvasRoom({ roomId }: CanvasRoomProps) {
+export function CanvasRoom({
+  roomId,
+  templatesOpen,
+  onTemplatesOpenChange,
+}: CanvasRoomProps) {
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
       <RoomProvider id={roomId} initialPresence={{ cursor: null, isThinking: false }}>
         <CanvasErrorBoundary fallback={<CanvasError />}>
           <ClientSideSuspense fallback={<CanvasLoading />}>
-            <CanvasFlow />
+            <CanvasFlow
+              templatesOpen={templatesOpen}
+              onTemplatesOpenChange={onTemplatesOpenChange}
+            />
           </ClientSideSuspense>
         </CanvasErrorBoundary>
       </RoomProvider>

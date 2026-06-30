@@ -30,6 +30,7 @@ export function EditorWorkspace({
 }: EditorWorkspaceProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(true)
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false)
   const actions = useProjectActions()
   const share = useShareDialog(project.id)
 
@@ -39,6 +40,7 @@ export function EditorWorkspace({
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((open) => !open)}
         projectName={project.name}
+        onOpenTemplates={() => setIsTemplatesOpen(true)}
         onShare={share.open}
         isAiSidebarOpen={isAiSidebarOpen}
         onToggleAiSidebar={() => setIsAiSidebarOpen((open) => !open)}
@@ -60,7 +62,11 @@ export function EditorWorkspace({
         />
 
         <main className="h-full flex-1 overflow-hidden rounded-2xl border border-surface-border bg-base">
-          <CanvasRoom roomId={project.id} />
+          <CanvasRoom
+            roomId={project.id}
+            templatesOpen={isTemplatesOpen}
+            onTemplatesOpenChange={setIsTemplatesOpen}
+          />
         </main>
 
         <aside
