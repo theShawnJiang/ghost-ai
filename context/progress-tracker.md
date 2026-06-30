@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 17: Canvas Ergonomics — floating zoom/undo-redo control bar plus matching keyboard shortcuts.
+- Feature 18: Starter Template Library — import a pre-built diagram to replace the current canvas.
 
 ## Completed
 
@@ -52,13 +52,15 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 17: Canvas Ergonomics — a floating control bar wiring zoom and undo/redo to the canvas, plus matching keyboard shortcuts, and removal of the minimap. `hooks/useKeyboardShortcuts.ts` (camelCase per spec) is a client hook that takes the React Flow instance + `onUndo`/`onRedo` handlers and binds a `window` `keydown` listener: `+`/`=` zoom in, `-` zoom out (both via `reactFlow.zoomIn`/`zoomOut({ duration: ZOOM_ANIMATION_DURATION })`, exported `200`ms), `Cmd/Ctrl+Z` undo, `Cmd/Ctrl+Shift+Z` / `Cmd/Ctrl+Y` redo; an `isEditableTarget` guard skips shortcuts while focus is in an `INPUT`/`TEXTAREA`/`isContentEditable` element. `components/editor/canvas/canvas-controls.tsx` (`CanvasControls`) is a floating pill (`absolute bottom-6 left-6 z-10`, same `rounded-full border-surface-border bg-surface/90` + blur styling as the shape panel) with two groups split by a thin `w-px bg-surface-border` divider: zoom (`ZoomOut` → `Maximize` fit view → `ZoomIn`, each calling the instance with the shared `{ duration }` animation) and history (`Undo2`/`Redo2`); the shared `ControlButton` dims and disables (`disabled:opacity-40 disabled:pointer-events-none`) so Undo is disabled when `!canUndo` and Redo when `!canRedo`. `components/editor/canvas/canvas-flow.tsx` `CanvasFlowInner` now keeps the full `useReactFlow()` instance, pulls Liveblocks history via `useUndo`/`useRedo`/`useCanUndo`/`useCanRedo` from `@liveblocks/react`, calls `useKeyboardShortcuts`, renders `<CanvasControls>` beside `<ShapePanel>`, and drops the `<MiniMap>` (and its import). Per scope: shape panel, node/edge rendering, the extra canvas controls, and the Liveblocks collaborative-state setup are unchanged. `npm run build` and `npm run lint` pass clean.
 
+- Feature 18: Starter Template Library — a small library of pre-built diagrams a user can import to start a canvas instead of building from scratch. `components/editor/starter-templates.ts` defines the `CanvasTemplate` interface (`id`, `name`, `description`, `nodes`, `edges`) and the `CANVAS_TEMPLATES` array with three templates (Microservices, CI/CD Pipeline, Event-Driven System) built from the shared canvas types (`CanvasNode`/`CanvasEdge`, `CANVAS_NODE_TYPE`/`CANVAS_EDGE_TYPE`, `NODE_COLORS` palette ids, `SHAPE_DEFAULT_SIZES`); two private helpers keep the data declarative — `tNode(id, label, shape, color, position)` (sizes the node from its shape default) and `tEdge(source, target, [sourceHandle, targetHandle], label?)` (handle sides match the connection-handle ids `top`/`right`/`bottom`/`left` so smooth-step routing stays clean, optional label rides through `CanvasEdgeData`). `components/editor/starter-templates-modal.tsx` (`StarterTemplatesModal`) is a controlled dialog (`open`/`onOpenChange`/`onImport`) rendering template cards in a scrollable (`ScrollArea`, `max-h-[70vh]`) responsive grid (`sm:grid-cols-2`); each card shows a preview, name, description, and an `Import template` button that calls `onImport(template)` then closes. The preview (`TemplatePreview` + `PreviewNode`) is lightweight and React-Flow-free: it computes the template bounds from node positions and fits them via the SVG `viewBox` (+ `preserveAspectRatio="xMidYMid meet"`), draws edges as `<line>`s between node centers, and draws each node by shape (ellipse/diamond+hexagon polygons/rounded `rect` for rectangle·pill·cylinder) filled with its `getNodeColor` fill + text stroke, all using `vectorEffect="non-scaling-stroke"`. Wiring: `editor-navbar.tsx` gains an optional `onOpenTemplates` prop rendering a `LayoutTemplate` "Templates" ghost button in the left section; `editor-workspace.tsx` holds `isTemplatesOpen` state, passes `onOpenTemplates` to the navbar and `templatesOpen`/`onTemplatesOpenChange` to `CanvasRoom`, which forwards them through `CanvasFlow` to `CanvasFlowInner` (the modal must live inside the Liveblocks room so the import can use the collaborative mutations). `CanvasFlowInner` renders `<StarterTemplatesModal>` and implements `importTemplate`: a single `onNodesChange` batch removing all current nodes then adding the template's, a single `onEdgesChange` batch doing the same for edges (clear-then-add through the Liveblocks mutations so it replaces rather than stacks), then `requestAnimationFrame(() => reactFlow.fitView({ duration: ZOOM_ANIMATION_DURATION }))`. Per scope: no template saving, no custom user templates, no server persistence, and node/edge rendering behavior is unchanged. `npm run build` and `npm run lint` pass clean.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Feature 18: TBD.
+- Feature 19: TBD.
 
 ## Open Questions
 
