@@ -2,6 +2,8 @@
 
 import { useMemo } from "react"
 
+import { Download } from "lucide-react"
+
 import {
   CANVAS_TEMPLATES,
   type CanvasTemplate,
@@ -41,17 +43,23 @@ export function StarterTemplatesModal({
 }: StarterTemplatesModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-3xl sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Start from a template</DialogTitle>
-          <DialogDescription>
-            Replace the current canvas with a pre-built diagram, then make it
-            your own.
+      <DialogContent className="rounded-3xl p-8 sm:max-w-4xl">
+        <DialogHeader className="gap-2">
+          <DialogTitle className="text-2xl font-semibold tracking-tight">
+            Import Template
+          </DialogTitle>
+          <DialogDescription className="text-sm text-copy-muted">
+            Choose a starter template to pre-populate your canvas. Any existing
+            nodes will be replaced — use{" "}
+            <kbd className="rounded border border-surface-border bg-subtle px-1.5 py-0.5 font-mono text-xs text-copy-secondary">
+              ⌘Z
+            </kbd>{" "}
+            to undo.
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[70vh]">
-          <div className="grid grid-cols-1 gap-3 pr-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 pr-3 sm:grid-cols-3">
             {CANVAS_TEMPLATES.map((template) => (
               <TemplateCard
                 key={template.id}
@@ -76,25 +84,26 @@ interface TemplateCardProps {
 
 function TemplateCard({ template, onImport }: TemplateCardProps) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-surface-border bg-elevated p-3">
-      <div className="h-36 overflow-hidden rounded-xl border border-surface-border bg-base">
+    <div className="flex flex-col gap-4 rounded-2xl border border-surface-border bg-elevated p-4">
+      <div className="h-40 overflow-hidden rounded-xl border border-surface-border bg-base">
         <TemplatePreview template={template} />
       </div>
-      <div className="flex flex-1 flex-col gap-1">
-        <h3 className="text-sm font-medium text-copy-primary">
+      <div className="flex flex-1 flex-col gap-2">
+        <h3 className="text-base font-semibold text-copy-primary">
           {template.name}
         </h3>
-        <p className="text-xs leading-relaxed text-copy-muted">
+        <p className="text-sm leading-relaxed text-copy-muted">
           {template.description}
         </p>
       </div>
       <Button
         type="button"
-        size="sm"
+        variant="outline"
         onClick={onImport}
-        className="cursor-pointer self-start"
+        className="h-10 w-full cursor-pointer gap-2"
       >
-        Import template
+        <Download />
+        Import
       </Button>
     </div>
   )
