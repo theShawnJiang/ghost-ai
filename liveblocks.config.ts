@@ -7,7 +7,7 @@ declare global {
       // Realtime cursor coordinates on the canvas (null when off-canvas).
       cursor: { x: number; y: number } | null;
       // Whether this user is currently waiting on / running an AI action.
-      isThinking: boolean;
+      thinking: boolean;
     };
 
     // Custom user info set when authenticating with a secret key

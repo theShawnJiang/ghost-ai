@@ -1,6 +1,12 @@
 "use client"
 
-import { useCallback, useMemo, useRef, type DragEvent } from "react"
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  type DragEvent,
+  type MouseEvent,
+} from "react"
 import {
   Background,
   BackgroundVariant,
@@ -11,8 +17,14 @@ import {
   useReactFlow,
   type DefaultEdgeOptions,
 } from "@xyflow/react"
-import { Cursors, useLiveblocksFlow } from "@liveblocks/react-flow"
-import { useCanRedo, useCanUndo, useRedo, useUndo } from "@liveblocks/react"
+import { useLiveblocksFlow } from "@liveblocks/react-flow"
+import {
+  useCanRedo,
+  useCanUndo,
+  useRedo,
+  useUndo,
+  useUpdateMyPresence,
+} from "@liveblocks/react"
 
 import {
   CanvasActionsProvider,
@@ -21,6 +33,8 @@ import {
 import { CanvasControls } from "@/components/editor/canvas/canvas-controls"
 import { CanvasEdgeView } from "@/components/editor/canvas/canvas-edge"
 import { CanvasNodeView } from "@/components/editor/canvas/canvas-node"
+import { LiveCursors } from "@/components/editor/canvas/live-cursors"
+import { PresenceAvatars } from "@/components/editor/canvas/presence-avatars"
 import { ShapePanel } from "@/components/editor/canvas/shape-panel"
 import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal"
 import type { CanvasTemplate } from "@/components/editor/starter-templates"
@@ -100,6 +114,24 @@ function CanvasFlowInner({
   const reactFlow = useReactFlow<CanvasNode, CanvasEdge>()
   const { screenToFlowPosition, getNode, getEdge } = reactFlow
   const nodeCounter = useRef(0)
+
+  // Broadcast this user's cursor through Liveblocks presence in flow
+  // coordinates, so remote participants see it at the same canvas location
+  // regardless of their own pan/zoom.
+  const updateMyPresence = useUpdateMyPresence()
+  const onCanvasMouseMove = useCallback(
+    (event: MouseEvent) => {
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      })
+      updateMyPresence({ cursor: { x: position.x, y: position.y } })
+    },
+    [screenToFlowPosition, updateMyPresence],
+  )
+  const onCanvasMouseLeave = useCallback(() => {
+    updateMyPresence({ cursor: null })
+  }, [updateMyPresence])
 
   // Undo/redo run through Liveblocks history so they revert collaborative
   // canvas state, not just the local React Flow store.
@@ -224,13 +256,16 @@ function CanvasFlowInner({
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onDelete={onDelete}
+          onMouseMove={onCanvasMouseMove}
+          onMouseLeave={onCanvasMouseLeave}
           defaultEdgeOptions={defaultEdgeOptions}
           connectionMode={ConnectionMode.Loose}
           fitView
         >
-          <Cursors />
+          <LiveCursors />
           <Background variant={BackgroundVariant.Dots} />
         </ReactFlow>
+        <PresenceAvatars />
         <CanvasControls
           reactFlow={reactFlow}
           onUndo={undo}
