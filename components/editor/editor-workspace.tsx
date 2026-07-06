@@ -1,9 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Sparkles } from "lucide-react"
 
 import type { Project } from "@/app/generated/prisma/client"
+import { AiSidebar } from "@/components/editor/ai-sidebar"
 import { CanvasRoom } from "@/components/editor/canvas/canvas-room"
 import { CreateProjectDialog } from "@/components/editor/create-project-dialog"
 import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog"
@@ -11,7 +11,6 @@ import { EditorNavbar } from "@/components/editor/editor-navbar"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { RenameProjectDialog } from "@/components/editor/rename-project-dialog"
 import { ShareDialog } from "@/components/editor/share-dialog"
-import { cn } from "@/lib/utils"
 import { useProjectActions } from "@/hooks/use-project-actions"
 import { useShareDialog } from "@/hooks/use-share-dialog"
 
@@ -69,23 +68,10 @@ export function EditorWorkspace({
           />
         </main>
 
-        <aside
-          aria-hidden={!isAiSidebarOpen}
-          className={cn(
-            "h-full w-80 max-w-[85vw] shrink-0 overflow-hidden rounded-2xl border border-surface-border bg-surface transition-[width,opacity] duration-200 ease-out",
-            isAiSidebarOpen
-              ? "opacity-100"
-              : "pointer-events-none w-0 border-0 opacity-0"
-          )}
-        >
-          <div className="flex h-12 shrink-0 items-center gap-2 border-b border-surface-border px-4">
-            <Sparkles className="h-4 w-4 text-ai-text" />
-            <h2 className="text-sm font-medium text-copy-primary">AI</h2>
-          </div>
-          <div className="flex h-[calc(100%-3rem)] items-center justify-center px-4 text-center text-xs text-copy-muted">
-            AI chat coming soon.
-          </div>
-        </aside>
+        <AiSidebar
+          isOpen={isAiSidebarOpen}
+          onClose={() => setIsAiSidebarOpen(false)}
+        />
       </div>
 
       <ShareDialog share={share} isOwner={isOwner} />
