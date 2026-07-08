@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   type DragEvent,
@@ -38,6 +39,10 @@ import { PresenceAvatars } from "@/components/editor/canvas/presence-avatars"
 import { ShapePanel } from "@/components/editor/canvas/shape-panel"
 import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal"
 import type { CanvasTemplate } from "@/components/editor/starter-templates"
+import {
+  useCanvasAutosave,
+  type SaveStatus,
+} from "@/hooks/use-canvas-autosave"
 import {
   useKeyboardShortcuts,
   ZOOM_ANIMATION_DURATION,
@@ -83,27 +88,35 @@ const defaultEdgeOptions: DefaultEdgeOptions = {
  * `<ReactFlow>`.
  */
 interface CanvasFlowProps {
+  projectId: string
   templatesOpen: boolean
   onTemplatesOpenChange: (open: boolean) => void
+  onSaveStatusChange?: (status: SaveStatus) => void
 }
 
 export function CanvasFlow({
+  projectId,
   templatesOpen,
   onTemplatesOpenChange,
+  onSaveStatusChange,
 }: CanvasFlowProps) {
   return (
     <ReactFlowProvider>
       <CanvasFlowInner
+        projectId={projectId}
         templatesOpen={templatesOpen}
         onTemplatesOpenChange={onTemplatesOpenChange}
+        onSaveStatusChange={onSaveStatusChange}
       />
     </ReactFlowProvider>
   )
 }
 
 function CanvasFlowInner({
+  projectId,
   templatesOpen,
   onTemplatesOpenChange,
+  onSaveStatusChange,
 }: CanvasFlowProps) {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, onDelete } =
     useLiveblocksFlow<CanvasNode, CanvasEdge>({
@@ -239,6 +252,54 @@ function CanvasFlowInner({
     },
     [nodes, edges, onNodesChange, onEdgesChange, reactFlow],
   )
+
+  // Debounced autosave: persists the canvas graph to Vercel Blob whenever the
+  // synced nodes/edges change, surfacing status to the navbar Save indicator.
+  useCanvasAutosave({
+    projectId,
+    nodes,
+    edges,
+    onStatusChange: onSaveStatusChange,
+  })
+
+  // Hydrate the room from the saved snapshot exactly once, and only when the
+  // room is empty — if collaborators already have live nodes/edges, loading
+  // would overwrite their active work, so skip it entirely.
+  const hasHydrated = useRef(false)
+  useEffect(() => {
+    if (hasHydrated.current) return
+    hasHydrated.current = true
+
+    if (nodes.length > 0 || edges.length > 0) return
+
+    let cancelled = false
+    void (async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/canvas`)
+        if (!response.ok || cancelled) return
+        const { canvas } = (await response.json()) as {
+          canvas: { nodes?: CanvasNode[]; edges?: CanvasEdge[] } | null
+        }
+        if (cancelled || !canvas) return
+
+        const savedNodes = canvas.nodes ?? []
+        const savedEdges = canvas.edges ?? []
+        if (savedNodes.length === 0 && savedEdges.length === 0) return
+
+        onNodesChange(savedNodes.map((node) => ({ type: "add", item: node })))
+        onEdgesChange(savedEdges.map((edge) => ({ type: "add", item: edge })))
+        requestAnimationFrame(() => {
+          reactFlow.fitView({ duration: ZOOM_ANIMATION_DURATION })
+        })
+      } catch {
+        // Loading is best-effort; an empty canvas is an acceptable fallback.
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [projectId, nodes, edges, onNodesChange, onEdgesChange, reactFlow])
 
   return (
     <CanvasActionsProvider value={actions}>

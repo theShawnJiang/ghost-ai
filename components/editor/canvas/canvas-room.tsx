@@ -9,12 +9,15 @@ import {
 import { Loader2, WifiOff } from "lucide-react"
 
 import { CanvasFlow } from "@/components/editor/canvas/canvas-flow"
+import type { SaveStatus } from "@/hooks/use-canvas-autosave"
 
 interface CanvasRoomProps {
   roomId: string
   /** Whether the starter templates import modal is open. */
   templatesOpen: boolean
   onTemplatesOpenChange: (open: boolean) => void
+  /** Surfaces autosave status to the workspace (navbar Save indicator). */
+  onSaveStatusChange?: (status: SaveStatus) => void
 }
 
 /**
@@ -25,6 +28,7 @@ export function CanvasRoom({
   roomId,
   templatesOpen,
   onTemplatesOpenChange,
+  onSaveStatusChange,
 }: CanvasRoomProps) {
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
@@ -32,8 +36,10 @@ export function CanvasRoom({
         <CanvasErrorBoundary fallback={<CanvasError />}>
           <ClientSideSuspense fallback={<CanvasLoading />}>
             <CanvasFlow
+              projectId={roomId}
               templatesOpen={templatesOpen}
               onTemplatesOpenChange={onTemplatesOpenChange}
+              onSaveStatusChange={onSaveStatusChange}
             />
           </ClientSideSuspense>
         </CanvasErrorBoundary>
