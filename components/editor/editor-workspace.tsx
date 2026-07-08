@@ -11,6 +11,7 @@ import { EditorNavbar } from "@/components/editor/editor-navbar"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { RenameProjectDialog } from "@/components/editor/rename-project-dialog"
 import { ShareDialog } from "@/components/editor/share-dialog"
+import type { SaveStatus } from "@/hooks/use-canvas-autosave"
 import { useProjectActions } from "@/hooks/use-project-actions"
 import { useShareDialog } from "@/hooks/use-share-dialog"
 
@@ -30,6 +31,7 @@ export function EditorWorkspace({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(true)
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle")
   const actions = useProjectActions()
   const share = useShareDialog(project.id)
 
@@ -41,6 +43,7 @@ export function EditorWorkspace({
         projectName={project.name}
         onOpenTemplates={() => setIsTemplatesOpen(true)}
         onShare={share.open}
+        saveStatus={saveStatus}
         isAiSidebarOpen={isAiSidebarOpen}
         onToggleAiSidebar={() => setIsAiSidebarOpen((open) => !open)}
       />
@@ -65,6 +68,7 @@ export function EditorWorkspace({
             roomId={project.id}
             templatesOpen={isTemplatesOpen}
             onTemplatesOpenChange={setIsTemplatesOpen}
+            onSaveStatusChange={setSaveStatus}
           />
         </main>
 

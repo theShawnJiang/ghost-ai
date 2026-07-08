@@ -9,7 +9,9 @@ import {
 } from "lucide-react"
 import { UserButton } from "@clerk/nextjs"
 
+import { SaveStatusIndicator } from "@/components/editor/save-status-indicator"
 import { Button } from "@/components/ui/button"
+import type { SaveStatus } from "@/hooks/use-canvas-autosave"
 import { cn } from "@/lib/utils"
 
 interface EditorNavbarProps {
@@ -18,6 +20,7 @@ interface EditorNavbarProps {
   projectName?: string
   onOpenTemplates?: () => void
   onShare?: () => void
+  saveStatus?: SaveStatus
   isAiSidebarOpen?: boolean
   onToggleAiSidebar?: () => void
 }
@@ -28,6 +31,7 @@ export function EditorNavbar({
   projectName,
   onOpenTemplates,
   onShare,
+  saveStatus,
   isAiSidebarOpen,
   onToggleAiSidebar,
 }: EditorNavbarProps) {
@@ -65,6 +69,7 @@ export function EditorNavbar({
         ) : null}
       </div>
       <div className="flex flex-1 items-center justify-end gap-1">
+        {saveStatus ? <SaveStatusIndicator status={saveStatus} /> : null}
         {onShare ? (
           <Button
             variant="ghost"
