@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 21: Canvas Autosave — persist collaborative canvas state to Vercel Blob (JSON) with the blob URL stored on the Prisma project record, debounced autosave, empty-room load, and a navbar save-status indicator.
+- Feature 22: Design Agent API — backend task wiring for design generation (Trigger.dev trigger route, TaskRun tracking model, run-scoped token route, minimal design task). No AI logic yet.
 
 ## Completed
 
@@ -65,13 +65,15 @@ Update this file whenever the current phase, active feature, or implementation s
   - Task skeletons — replaced the throwaway `trigger/example.ts` with the two real AI task skeletons. `trigger/generate-design.ts` (`generateDesign`, `id: "generate-design"`) takes `{ projectId, prompt, canvas? }` and is stubbed to turn a prompt + current canvas into structured node/edge updates written into the shared Liveblocks room (room id === projectId); AI call and Liveblocks storage mutation are TODOs. `trigger/generate-spec.ts` (`generateSpec`, `id: "generate-spec"`) takes `{ projectId, canvas }`, builds Markdown (AI call TODO), and `put()`s it to Vercel Blob at `specs/{projectId}/{specId}.md` (`access: "private"` to match the private store used by the canvas route), returning the blob URL; persisting a DB spec record is a TODO pending a `Spec` Prisma model. Both use the v4 `@trigger.dev/sdk` root import and the shared `CanvasNode`/`CanvasEdge` types. `trigger.config.ts` now reads `project: process.env.TRIGGER_PROJECT_REF!` (env-based, was a hardcoded project id) — so `TRIGGER_PROJECT_REF` (`proj_hqktvfyxycmkxrpjzajc`, Ghost AI / org Shawniverse) joins `TRIGGER_SECRET_KEY` in `.env.local`; `maxDuration` stays `3600`. `npx tsc --noEmit` passes clean.
   - Registered to dashboard + CLI sync — ran `npx trigger.dev@latest dev` (the CLI is not a project dependency; only `@trigger.dev/sdk`/`@trigger.dev/build` are, so it runs via `npx`) against the Development environment, which registered `generate-design` and `generate-spec` and dropped the removed `example-task` from the Tasks list. Bumped `@trigger.dev/sdk` and `@trigger.dev/build` from `^4.5.1` to `^4.5.2` to match the latest CLI (Trigger.dev recommends keeping CLI and SDK in lockstep). Local dev workflow: run `npm run dev` (Next.js app) and `npx trigger.dev@latest dev` (task worker) side by side — the worker only needs to run once triggering code exists (tasks are still skeletons). `npx tsc --noEmit` passes clean.
 
+- Feature 22: Design Agent API — backend-only wiring for design generation (no AI logic, no node/edge output, no canvas mutation, no AI provider calls — scope-limited to task plumbing). `prisma/models/task-run.prisma` adds a `TaskRun` model (cuid `id`, unique `runId`, `projectId`, `userId`, `createdAt`) with an index on `runId` and a compound index on `[userId, projectId]` — first-class relational data used to verify run ownership before issuing tokens. Migration `20260716024242_add_task_run` applied; Prisma client regenerated to `app/generated/prisma` (custom output — `prisma generate` must be run explicitly, `migrate dev` alone doesn't refresh it). `trigger/design-agent.ts` (`designAgent`, `id: "design-agent"`) is the minimal design task: `DesignAgentPayload { prompt, roomId }`, logs/echoes the input and returns `{ roomId, prompt }` — reuses the existing `@trigger.dev/sdk` `task()`/`logger` pattern (distinct from the earlier `generate-design` skeleton; this is the task the API route actually triggers). `app/api/ai/design/route.ts` `POST` validates `{ prompt, roomId, projectId }` (all required → `400`), auth-guards via `getCurrentIdentity` (`401`) + `getAccessibleProject` (`404` when not owner/collaborator), fires `designAgent.trigger({ prompt, roomId })`, records a `TaskRun` (`runId: handle.id`, `projectId`, `userId`), and returns `{ runId }` (`202`). `app/api/ai/design/token/route.ts` `POST` accepts `{ runId }`, looks up the `TaskRun` and verifies `taskRun.userId === identity.userId` (`404` when missing or not owned), then mints a run-scoped Trigger.dev public token via `auth.createPublicToken({ scopes: { read: { runs: [runId] } } })` and returns `{ token }`. Live `npx trigger.dev@latest dev` registration of `design-agent` is a manual interactive step (the CLI aborts in non-interactive/CI shells); the task type-checks and builds. `npm run build` and `npm run lint` pass clean.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Feature 22: TBD.
+- Feature 23: TBD (likely wiring the AI Sidebar to `POST /api/ai/design` + token subscription, then adding real AI logic to `design-agent`).
 
 ## Open Questions
 
