@@ -1,7 +1,8 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { Bot, Download, FileText, Send, X } from "lucide-react"
+import { useRealtimeRun } from "@trigger.dev/react-hooks"
+import { Bot, Download, FileText, Loader2, Send, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -12,17 +13,21 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { useDesignAgent, type DesignRunOutput } from "@/hooks/use-design-agent"
 import { cn } from "@/lib/utils"
+import type { AiLogEntry } from "@/types/ai"
 
 interface AiSidebarProps {
   isOpen: boolean
   onClose: () => void
+  /** Project id, which is also the Liveblocks room id the design targets. */
+  projectId: string
 }
 
 const TAB_TRIGGER_CLASS =
   "text-copy-muted data-active:bg-accent-dim data-active:text-brand dark:data-active:bg-accent-dim dark:data-active:text-brand"
 
-export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
+export function AiSidebar({ isOpen, onClose, projectId }: AiSidebarProps) {
   const [tab, setTab] = useState("architect")
 
   return (
@@ -79,7 +84,7 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
           value="architect"
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <ArchitectTab />
+          <ArchitectTab projectId={projectId} />
         </TabsContent>
 
         <TabsContent
@@ -105,26 +110,30 @@ const STARTER_PROMPTS = [
   "Build a CI/CD pipeline",
 ]
 
-const ASSISTANT_PLACEHOLDER =
-  "This is a placeholder response — AI generation isn't connected yet. Your prompt has been captured here."
-
-function ArchitectTab() {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+function ArchitectTab({ projectId }: { projectId: string }) {
   const [input, setInput] = useState("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const agent = useDesignAgent(projectId)
+
+  // Subscribe to the active run so the chat reflects live task progress. The
+  // run-scoped token authorizes reading just this run; when idle it's disabled.
+  const { run } = useRealtimeRun(agent.runId, {
+    accessToken: agent.accessToken,
+    enabled: Boolean(agent.runId && agent.accessToken),
+    onComplete: (completedRun, err) =>
+      agent.handleComplete(
+        completedRun.output as DesignRunOutput | undefined,
+        err,
+      ),
+  })
+
+  const log = (run?.metadata?.log as AiLogEntry[] | undefined) ?? []
+  const liveStatus = log[log.length - 1]?.message ?? "Getting started…"
 
   function send() {
     const content = input.trim()
-    if (!content) return
-    setMessages((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), role: "user", content },
-      {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: ASSISTANT_PLACEHOLDER,
-      },
-    ])
+    if (!content || agent.isSubmitting) return
+    void agent.submit(content)
     setInput("")
   }
 
@@ -140,16 +149,21 @@ function ArchitectTab() {
     textareaRef.current?.focus()
   }
 
+  const hasContent = agent.messages.length > 0 || agent.isSubmitting
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-3 px-4 pb-4">
-          {messages.length === 0 ? (
+          {!hasContent ? (
             <EmptyState onPick={pickPrompt} />
           ) : (
-            messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))
+            <>
+              {agent.messages.map((message) => (
+                <MessageBubble key={message.id} message={message} />
+              ))}
+              {agent.isSubmitting && <StatusBubble message={liveStatus} />}
+            </>
           )}
         </div>
       </ScrollArea>
@@ -162,6 +176,7 @@ function ArchitectTab() {
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Describe the system you want to design…"
+            disabled={agent.isSubmitting}
             className="max-h-40 min-h-[72px] resize-none border-0 bg-transparent p-1 shadow-none focus-visible:ring-0 dark:bg-transparent"
           />
           <div className="flex items-center justify-between gap-2">
@@ -171,14 +186,25 @@ function ArchitectTab() {
             <Button
               size="sm"
               onClick={send}
-              disabled={!input.trim()}
+              disabled={!input.trim() || agent.isSubmitting}
               className="bg-brand text-white hover:bg-brand/90"
             >
-              <Send />
+              {agent.isSubmitting ? <Loader2 className="animate-spin" /> : <Send />}
               Send
             </Button>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function StatusBubble({ message }: { message: string }) {
+  return (
+    <div className="flex justify-start">
+      <div className="flex max-w-[85%] items-center gap-2 rounded-2xl border border-surface-border bg-elevated px-3 py-2 text-sm text-ai-text">
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+        {message}
       </div>
     </div>
   )

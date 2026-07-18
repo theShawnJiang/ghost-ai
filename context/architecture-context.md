@@ -50,8 +50,9 @@
 ### Design Generation
 
 - Input: user prompt, project context, and current canvas state.
-- Execution: durable background task via Trigger.dev.
-- Output: structured node and edge updates written into the shared Liveblocks room.
+- Execution: durable background task via Trigger.dev (Gemini via `@ai-sdk/google`).
+- Output: structured node and edge updates written into the shared Liveblocks room via the collaborative flow utilities (`mutateFlow` from `@liveblocks/react-flow/node`).
+- Presence + status: the task publishes an ephemeral AI presence (cursor + thinking state) and a status feed to all room participants via Liveblocks broadcast room events, and mirrors status to the triggering user through the run's Trigger.dev metadata. Presence is never persisted to storage.
 
 ### Spec Generation
 
