@@ -31,6 +31,7 @@ import {
   CanvasActionsProvider,
   type CanvasActions,
 } from "@/components/editor/canvas/canvas-actions"
+import { AiPresence } from "@/components/editor/canvas/ai-presence"
 import { CanvasControls } from "@/components/editor/canvas/canvas-controls"
 import { CanvasEdgeView } from "@/components/editor/canvas/canvas-edge"
 import { CanvasNodeView } from "@/components/editor/canvas/canvas-node"
@@ -324,6 +325,7 @@ function CanvasFlowInner({
           fitView
         >
           <LiveCursors />
+          <AiPresence />
           <Background variant={BackgroundVariant.Dots} />
         </ReactFlow>
         <PresenceAvatars />
