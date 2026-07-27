@@ -34,7 +34,7 @@ export function AiSidebar({ isOpen, onClose, projectId }: AiSidebarProps) {
     <aside
       aria-hidden={!isOpen}
       className={cn(
-        "flex h-full w-80 max-w-[85vw] shrink-0 flex-col overflow-hidden rounded-2xl border border-surface-border bg-base/95 shadow-2xl transition-[width,opacity] duration-200 ease-out",
+        "flex h-full w-80 max-w-[85vw] shrink-0 flex-col overflow-hidden rounded-2xl border border-surface-border bg-page/95 shadow-2xl transition-[width,opacity] duration-200 ease-out",
         isOpen
           ? "opacity-100"
           : "pointer-events-none w-0 border-0 opacity-0"

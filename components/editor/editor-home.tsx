@@ -22,7 +22,7 @@ export function EditorHome({ owned, shared }: EditorHomeProps) {
   const actions = useProjectActions()
 
   return (
-    <div className="flex h-screen flex-col bg-base">
+    <div className="flex h-screen flex-col bg-page">
       <EditorNavbar
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((open) => !open)}

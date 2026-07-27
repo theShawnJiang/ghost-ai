@@ -36,7 +36,7 @@ export function EditorWorkspace({
   const share = useShareDialog(project.id)
 
   return (
-    <div className="flex h-screen flex-col bg-base">
+    <div className="flex h-screen flex-col bg-page">
       <EditorNavbar
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((open) => !open)}
@@ -63,7 +63,7 @@ export function EditorWorkspace({
           }
         />
 
-        <main className="h-full flex-1 overflow-hidden rounded-2xl border border-surface-border bg-base">
+        <main className="h-full flex-1 overflow-hidden rounded-2xl border border-surface-border bg-page">
           <CanvasRoom
             roomId={project.id}
             templatesOpen={isTemplatesOpen}

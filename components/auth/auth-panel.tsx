@@ -31,7 +31,7 @@ interface AuthPanelProps {
 
 export function AuthPanel({ children }: AuthPanelProps) {
   return (
-    <div className="grid min-h-screen w-full bg-base lg:grid-cols-2">
+    <div className="grid min-h-screen w-full bg-page lg:grid-cols-2">
       <aside className="relative hidden flex-col justify-between bg-surface px-14 py-12 lg:flex">
         <div className="flex items-center gap-3">
           <span className="h-9 w-9 rounded-xl bg-brand" aria-hidden />
