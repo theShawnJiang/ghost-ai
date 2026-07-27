@@ -85,7 +85,7 @@ interface TemplateCardProps {
 function TemplateCard({ template, onImport }: TemplateCardProps) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-surface-border bg-elevated p-4">
-      <div className="h-40 overflow-hidden rounded-xl border border-surface-border bg-base">
+      <div className="h-40 overflow-hidden rounded-xl border border-surface-border bg-page">
         <TemplatePreview template={template} />
       </div>
       <div className="flex flex-1 flex-col gap-2">

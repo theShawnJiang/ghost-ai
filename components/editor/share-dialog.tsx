@@ -75,7 +75,7 @@ export function ShareDialog({ share, isOwner }: ShareDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <section className="flex items-center justify-between gap-4 rounded-2xl border border-surface-border bg-base/40 p-4">
+        <section className="flex items-center justify-between gap-4 rounded-2xl border border-surface-border bg-page/40 p-4">
           <div className="flex min-w-0 flex-col gap-1">
             <span className="text-sm font-medium text-copy-primary">
               Workspace link
@@ -99,7 +99,7 @@ export function ShareDialog({ share, isOwner }: ShareDialogProps) {
         {isOwner ? (
           <form
             onSubmit={handleInvite}
-            className="flex items-center gap-3 rounded-2xl border border-surface-border bg-base/40 p-3"
+            className="flex items-center gap-3 rounded-2xl border border-surface-border bg-page/40 p-3"
           >
             <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-elevated px-3">
               <Mail className="h-4 w-4 shrink-0 text-copy-muted" />
@@ -178,7 +178,7 @@ function MemberRow({ member, canRemove, isRemoving, onRemove }: MemberRowProps) 
   const showEmail = Boolean(member.email) && member.email !== displayName
 
   return (
-    <li className="flex items-center gap-3 rounded-2xl border border-surface-border bg-base/40 px-4 py-3">
+    <li className="flex items-center gap-3 rounded-2xl border border-surface-border bg-page/40 px-4 py-3">
       <MemberAvatar member={member} />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2">
