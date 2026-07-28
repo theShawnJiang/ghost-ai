@@ -1,4 +1,5 @@
 import type { AiStatusEvent } from "@/types/ai";
+import type { AiStatusFeedMessage } from "@/types/tasks";
 
 // Define Liveblocks types for your application
 // https://liveblocks.io/docs/api-reference/liveblocks-react#Typing-your-data
@@ -12,9 +13,14 @@ declare global {
       thinking: boolean;
     };
 
-    // Broadcast room events. The design agent publishes its presence + status
-    // feed here so every participant sees AI activity in real time.
+    // Broadcast room events. The design agent publishes its ephemeral canvas
+    // presence (the moving AI cursor) here — high frequency, never persisted.
     RoomEvent: AiStatusEvent;
+
+    // Payload of every `ai-status-feed` message. Unlike the broadcast above,
+    // feed messages persist, so a participant who joins mid-run still sees the
+    // current AI status.
+    FeedMessageData: AiStatusFeedMessage;
 
     // Custom user info set when authenticating with a secret key
     UserMeta: {

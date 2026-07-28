@@ -52,7 +52,15 @@
 - Input: user prompt, project context, and current canvas state.
 - Execution: durable background task via Trigger.dev (Gemini via `@ai-sdk/google`).
 - Output: structured node and edge updates written into the shared Liveblocks room via the collaborative flow utilities (`mutateFlow` from `@liveblocks/react-flow/node`).
-- Presence + status: the task publishes an ephemeral AI presence (cursor + thinking state) and a status feed to all room participants via Liveblocks broadcast room events, and mirrors status to the triggering user through the run's Trigger.dev metadata. Presence is never persisted to storage.
+- Presence + status: the task publishes an ephemeral AI presence (the moving AI cursor) to all room participants via Liveblocks broadcast room events, appends coarse status to the room's shared `ai-status-feed` Liveblocks feed, and mirrors status to the triggering user through the run's Trigger.dev metadata. Presence is never persisted to storage.
+
+### Shared AI Activity State
+
+- Three Liveblocks-native channels, each doing what it is designed for — no bespoke realtime store sits alongside them:
+  - **Broadcast room events** — the AI's cursor position while it works. High frequency, ephemeral, missed by anyone who joins mid-run.
+  - **Feeds** (`ai-status-feed`, one per room) — the durable, room-wide "what is the AI doing" status. Written on phase changes only; a participant who joins mid-run still reads the current state. Payload schema and validation live in `types/tasks.ts`; feed messages are validated before they are displayed.
+  - **Presence** (`thinking`) — whether an individual participant is waiting on an AI run, rendered on their live cursor.
+- The Liveblocks room provider wraps the whole editor workspace (canvas *and* AI sidebar) so both surfaces read the same room state.
 
 ### Spec Generation
 

@@ -3,6 +3,7 @@
 import { useAuth } from "@clerk/nextjs"
 import { useOthers } from "@liveblocks/react"
 import { useViewport } from "@xyflow/react"
+import { Loader2 } from "lucide-react"
 
 /** Fallback pointer color when a participant has no presence color. */
 const FALLBACK_COLOR = "#00c8d4"
@@ -34,6 +35,7 @@ export function LiveCursors() {
             top={cursor.y * zoom + y}
             color={other.info?.color ?? FALLBACK_COLOR}
             name={other.info?.name ?? "Anonymous"}
+            thinking={other.presence.thinking === true}
           />
         )
       })}
@@ -46,10 +48,12 @@ interface CursorProps {
   top: number
   color: string
   name: string
+  /** Whether this participant is waiting on an AI run right now. */
+  thinking: boolean
 }
 
 /** A single colored pointer with an attached name badge. */
-function Cursor({ left, top, color, name }: CursorProps) {
+function Cursor({ left, top, color, name, thinking }: CursorProps) {
   return (
     <div
       className="absolute left-0 top-0 will-change-transform"
@@ -71,10 +75,16 @@ function Cursor({ left, top, color, name }: CursorProps) {
         />
       </svg>
       <span
-        className="absolute left-[18px] top-[14px] whitespace-nowrap rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-none text-white shadow-sm"
+        className="absolute left-[18px] top-[14px] flex items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-none text-white shadow-sm"
         style={{ backgroundColor: color }}
       >
         {name}
+        {thinking && (
+          <Loader2
+            className="h-3 w-3 animate-spin"
+            aria-label={`${name} is waiting on Ghost AI`}
+          />
+        )}
       </span>
     </div>
   )

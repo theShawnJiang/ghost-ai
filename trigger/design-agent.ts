@@ -4,6 +4,7 @@ import { generateObject } from "ai";
 import { mutateFlow } from "@liveblocks/react-flow/node";
 import { z } from "zod";
 
+import { publishAiStatus } from "@/lib/ai-status-feed";
 import { getLiveblocks } from "@/lib/liveblocks";
 import {
   CANVAS_EDGE_TYPE,
@@ -16,6 +17,7 @@ import {
   type NodeColor,
 } from "@/types/canvas";
 import type { AiLogEntry, AiPhase, AiStatusEvent } from "@/types/ai";
+import type { AiStatusFeedMessage } from "@/types/tasks";
 
 /**
  * `design-agent` — turns a natural-language prompt into a real-time system
@@ -138,8 +140,17 @@ export const designAgent = task({
     const { prompt, roomId } = payload;
     const liveblocks = getLiveblocks();
     const log: AiLogEntry[] = [];
+    // Last status written to the shared feed. Feed messages persist, so we only
+    // append when the status text actually changes — the moving AI cursor rides
+    // on the ephemeral broadcast instead.
+    let lastFeedStatus = "";
 
-    /** Publish a status update to both the run metadata and the whole room. */
+    /**
+     * Publish a status update through all three channels:
+     *  - run metadata, for the triggering user's realtime run subscription
+     *  - a broadcast room event, for the ephemeral AI cursor on the canvas
+     *  - the shared `ai-status-feed`, for every participant's sidebar
+     */
     const publish = async (
       phase: AiPhase,
       message: string,
@@ -149,12 +160,23 @@ export const designAgent = task({
       log.push({ phase, message });
       metadata.set("phase", phase);
       metadata.set("log", log);
+
       const event: AiStatusEvent = { type: "ai-status", phase, message, thinking, cursor };
       try {
         await liveblocks.broadcastEvent(roomId, event);
       } catch (error) {
         // Presence broadcast is best-effort; storage updates still land.
         logger.warn("design-agent broadcast failed", { error: String(error) });
+      }
+
+      const feedStatus = `${phase}|${message}`;
+      if (feedStatus === lastFeedStatus) return;
+      lastFeedStatus = feedStatus;
+
+      const status: AiStatusFeedMessage = { kind: "design", phase, text: message };
+      const published = await publishAiStatus(liveblocks, roomId, status);
+      if (!published) {
+        logger.warn("design-agent status feed publish failed", { roomId, phase });
       }
     };
 

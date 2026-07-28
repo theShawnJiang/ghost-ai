@@ -1,11 +1,7 @@
 "use client"
 
 import { Component, type ReactNode } from "react"
-import {
-  ClientSideSuspense,
-  LiveblocksProvider,
-  RoomProvider,
-} from "@liveblocks/react"
+import { ClientSideSuspense } from "@liveblocks/react"
 import { Loader2, WifiOff } from "lucide-react"
 
 import { CanvasFlow } from "@/components/editor/canvas/canvas-flow"
@@ -21,8 +17,9 @@ interface CanvasRoomProps {
 }
 
 /**
- * Client-side canvas wrapper. Connects to the Liveblocks room for this project
- * and renders the collaborative React Flow canvas once Storage is ready.
+ * Client-side canvas wrapper. Renders the collaborative React Flow canvas once
+ * Storage is ready. The room connection itself is provided one level up by
+ * `WorkspaceRoom`, so the AI sidebar shares it.
  */
 export function CanvasRoom({
   roomId,
@@ -31,20 +28,16 @@ export function CanvasRoom({
   onSaveStatusChange,
 }: CanvasRoomProps) {
   return (
-    <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
-      <RoomProvider id={roomId} initialPresence={{ cursor: null, thinking: false }}>
-        <CanvasErrorBoundary fallback={<CanvasError />}>
-          <ClientSideSuspense fallback={<CanvasLoading />}>
-            <CanvasFlow
-              projectId={roomId}
-              templatesOpen={templatesOpen}
-              onTemplatesOpenChange={onTemplatesOpenChange}
-              onSaveStatusChange={onSaveStatusChange}
-            />
-          </ClientSideSuspense>
-        </CanvasErrorBoundary>
-      </RoomProvider>
-    </LiveblocksProvider>
+    <CanvasErrorBoundary fallback={<CanvasError />}>
+      <ClientSideSuspense fallback={<CanvasLoading />}>
+        <CanvasFlow
+          projectId={roomId}
+          templatesOpen={templatesOpen}
+          onTemplatesOpenChange={onTemplatesOpenChange}
+          onSaveStatusChange={onSaveStatusChange}
+        />
+      </ClientSideSuspense>
+    </CanvasErrorBoundary>
   )
 }
 
