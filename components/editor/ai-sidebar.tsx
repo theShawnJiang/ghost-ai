@@ -4,6 +4,7 @@ import { useRef, useState } from "react"
 import { useRealtimeRun } from "@trigger.dev/react-hooks"
 import { Bot, Download, FileText, Loader2, Send, X } from "lucide-react"
 
+import { AiStatusIndicator } from "@/components/editor/ai-status-indicator"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -13,7 +14,9 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { useAiStatusFeed } from "@/hooks/use-ai-status-feed"
 import { useDesignAgent, type DesignRunOutput } from "@/hooks/use-design-agent"
+import { useThinkingPresence } from "@/hooks/use-thinking-presence"
 import { cn } from "@/lib/utils"
 import type { AiLogEntry } from "@/types/ai"
 
@@ -29,6 +32,9 @@ const TAB_TRIGGER_CLASS =
 
 export function AiSidebar({ isOpen, onClose, projectId }: AiSidebarProps) {
   const [tab, setTab] = useState("architect")
+  // Room-wide AI activity: the same status for every participant, regardless of
+  // who started the run or which tab they're on.
+  const aiStatus = useAiStatusFeed()
 
   return (
     <aside
@@ -64,6 +70,15 @@ export function AiSidebar({ isOpen, onClose, projectId }: AiSidebarProps) {
         </Button>
       </div>
 
+      {aiStatus.status && (
+        <div className="shrink-0 px-4 pt-3">
+          <AiStatusIndicator
+            status={aiStatus.status}
+            isActive={aiStatus.isActive}
+          />
+        </div>
+      )}
+
       <Tabs
         value={tab}
         onValueChange={setTab}
@@ -84,7 +99,7 @@ export function AiSidebar({ isOpen, onClose, projectId }: AiSidebarProps) {
           value="architect"
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <ArchitectTab projectId={projectId} />
+          <ArchitectTab projectId={projectId} isRoomBusy={aiStatus.isActive} />
         </TabsContent>
 
         <TabsContent
@@ -110,10 +125,23 @@ const STARTER_PROMPTS = [
   "Build a CI/CD pipeline",
 ]
 
-function ArchitectTab({ projectId }: { projectId: string }) {
+interface ArchitectTabProps {
+  projectId: string
+  /** Whether any participant's AI run is currently active in this room. */
+  isRoomBusy: boolean
+}
+
+function ArchitectTab({ projectId, isRoomBusy }: ArchitectTabProps) {
   const [input, setInput] = useState("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const agent = useDesignAgent(projectId)
+
+  // Generation writes to the shared canvas, so a run started by anyone locks
+  // the composer for everyone — two concurrent runs would fight over the graph.
+  const isGenerating = agent.isSubmitting || isRoomBusy
+
+  // Let the rest of the room see this user waiting on the AI, via their cursor.
+  useThinkingPresence(agent.isSubmitting)
 
   // Subscribe to the active run so the chat reflects live task progress. The
   // run-scoped token authorizes reading just this run; when idle it's disabled.
@@ -132,7 +160,7 @@ function ArchitectTab({ projectId }: { projectId: string }) {
 
   function send() {
     const content = input.trim()
-    if (!content || agent.isSubmitting) return
+    if (!content || isGenerating) return
     void agent.submit(content)
     setInput("")
   }
@@ -175,21 +203,27 @@ function ArchitectTab({ projectId }: { projectId: string }) {
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe the system you want to design…"
-            disabled={agent.isSubmitting}
+            placeholder={
+              isGenerating
+                ? "Ghost AI is working…"
+                : "Describe the system you want to design…"
+            }
+            disabled={isGenerating}
             className="max-h-40 min-h-[72px] resize-none border-0 bg-transparent p-1 shadow-none focus-visible:ring-0 dark:bg-transparent"
           />
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-copy-faint">
-              Enter to send · Shift+Enter for a new line
+              {isGenerating
+                ? "Waiting for the current design to finish"
+                : "Enter to send · Shift+Enter for a new line"}
             </span>
             <Button
               size="sm"
               onClick={send}
-              disabled={!input.trim() || agent.isSubmitting}
+              disabled={!input.trim() || isGenerating}
               className="bg-brand text-white hover:bg-brand/90"
             >
-              {agent.isSubmitting ? <Loader2 className="animate-spin" /> : <Send />}
+              {isGenerating ? <Loader2 className="animate-spin" /> : <Send />}
               Send
             </Button>
           </div>

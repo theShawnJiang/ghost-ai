@@ -11,6 +11,7 @@ import { EditorNavbar } from "@/components/editor/editor-navbar"
 import { ProjectSidebar } from "@/components/editor/project-sidebar"
 import { RenameProjectDialog } from "@/components/editor/rename-project-dialog"
 import { ShareDialog } from "@/components/editor/share-dialog"
+import { WorkspaceRoom } from "@/components/editor/workspace-room"
 import type { SaveStatus } from "@/hooks/use-canvas-autosave"
 import { useProjectActions } from "@/hooks/use-project-actions"
 import { useShareDialog } from "@/hooks/use-share-dialog"
@@ -63,20 +64,25 @@ export function EditorWorkspace({
           }
         />
 
-        <main className="h-full flex-1 overflow-hidden rounded-2xl border border-surface-border bg-page">
-          <CanvasRoom
-            roomId={project.id}
-            templatesOpen={isTemplatesOpen}
-            onTemplatesOpenChange={setIsTemplatesOpen}
-            onSaveStatusChange={setSaveStatus}
-          />
-        </main>
+        {/* Canvas and AI sidebar share one room connection: the sidebar reads
+            the shared AI status feed and publishes the user's thinking
+            presence, which the canvas draws on their cursor. */}
+        <WorkspaceRoom roomId={project.id}>
+          <main className="h-full flex-1 overflow-hidden rounded-2xl border border-surface-border bg-page">
+            <CanvasRoom
+              roomId={project.id}
+              templatesOpen={isTemplatesOpen}
+              onTemplatesOpenChange={setIsTemplatesOpen}
+              onSaveStatusChange={setSaveStatus}
+            />
+          </main>
 
-        <AiSidebar
-          isOpen={isAiSidebarOpen}
-          onClose={() => setIsAiSidebarOpen(false)}
-          projectId={project.id}
-        />
+          <AiSidebar
+            isOpen={isAiSidebarOpen}
+            onClose={() => setIsAiSidebarOpen(false)}
+            projectId={project.id}
+          />
+        </WorkspaceRoom>
       </div>
 
       <ShareDialog share={share} isOwner={isOwner} />
