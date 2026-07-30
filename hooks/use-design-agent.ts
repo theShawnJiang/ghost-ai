@@ -17,13 +17,19 @@ export interface AiChatMessage {
   id: string
   role: "user" | "assistant"
   content: string
+  /** Epoch ms, so these interleave correctly with shared `ai-chat` messages. */
+  timestamp: number
 }
 
 /**
  * Drives an AI design generation from the sidebar: posts the prompt to the
- * trigger route, mints a run-scoped realtime token, and tracks the chat
- * transcript. The subscription itself (`useRealtimeRun`) lives in the component
- * so it can be wired to this hook's `runId`/`accessToken` and `handleComplete`.
+ * trigger route, mints a run-scoped realtime token, and tracks the AI's replies.
+ * The subscription itself (`useRealtimeRun`) lives in the component so it can be
+ * wired to this hook's `runId`/`accessToken` and `handleComplete`.
+ *
+ * Only the AI's own replies are tracked here, and only for the user who started
+ * the run. The prompt itself is published to the room's shared `ai-chat` feed
+ * instead, so every participant sees who asked for what.
  */
 export function useDesignAgent(projectId: string) {
   const [messages, setMessages] = useState<AiChatMessage[]>([])
@@ -36,10 +42,6 @@ export function useDesignAgent(projectId: string) {
       const content = prompt.trim()
       if (!content || isSubmitting) return
 
-      setMessages((prev) => [
-        ...prev,
-        { id: crypto.randomUUID(), role: "user", content },
-      ])
       setIsSubmitting(true)
 
       try {
@@ -70,6 +72,7 @@ export function useDesignAgent(projectId: string) {
             role: "assistant",
             content:
               "Sorry — I couldn't start the design. Please try again in a moment.",
+            timestamp: Date.now(),
           },
         ])
       }
@@ -92,7 +95,12 @@ export function useDesignAgent(projectId: string) {
 
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: "assistant", content },
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content,
+          timestamp: Date.now(),
+        },
       ])
       setIsSubmitting(false)
       setRunId(undefined)
