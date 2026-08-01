@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useRealtimeRun } from "@trigger.dev/react-hooks"
 import { Bot, Download, FileText, Loader2, Send, X } from "lucide-react"
 
@@ -14,8 +14,16 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  useAiChatFeed,
+  type AiChatFeedEntry,
+} from "@/hooks/use-ai-chat-feed"
 import { useAiStatusFeed } from "@/hooks/use-ai-status-feed"
-import { useDesignAgent, type DesignRunOutput } from "@/hooks/use-design-agent"
+import {
+  useDesignAgent,
+  type AiChatMessage,
+  type DesignRunOutput,
+} from "@/hooks/use-design-agent"
 import { useThinkingPresence } from "@/hooks/use-thinking-presence"
 import { cn } from "@/lib/utils"
 import type { AiLogEntry } from "@/types/ai"
@@ -113,12 +121,6 @@ export function AiSidebar({ isOpen, onClose, projectId }: AiSidebarProps) {
   )
 }
 
-interface ChatMessage {
-  id: string
-  role: "user" | "assistant"
-  content: string
-}
-
 const STARTER_PROMPTS = [
   "Design an e-commerce backend",
   "Create a chat app architecture",
@@ -135,6 +137,9 @@ function ArchitectTab({ projectId, isRoomBusy }: ArchitectTabProps) {
   const [input, setInput] = useState("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const agent = useDesignAgent(projectId)
+  // Room chat, shared by everyone in the room. Separate feed from the AI status
+  // above, so a teammate's message and a progress line never blur together.
+  const chat = useAiChatFeed()
 
   // Generation writes to the shared canvas, so a run started by anyone locks
   // the composer for everyone — two concurrent runs would fight over the graph.
@@ -158,17 +163,31 @@ function ArchitectTab({ projectId, isRoomBusy }: ArchitectTabProps) {
   const log = (run?.metadata?.log as AiLogEntry[] | undefined) ?? []
   const liveStatus = log[log.length - 1]?.message ?? "Getting started…"
 
-  function send() {
+  // Shared chat and the local AI replies are two sources for one transcript, so
+  // they're interleaved on their timestamps rather than concatenated.
+  const transcript = useMemo(
+    () => buildTranscript(chat.messages, agent.messages),
+    [chat.messages, agent.messages],
+  )
+
+  async function send() {
     const content = input.trim()
-    if (!content || isGenerating) return
-    void agent.submit(content)
+    if (!content || isGenerating || chat.isSending) return
+
+    // The prompt is a room message first: everyone sees who asked for what.
+    // Only clear the composer once it actually reached the feed, so a failed
+    // send leaves the text in place to retry.
+    const sent = await chat.send(content)
+    if (!sent) return
+
     setInput("")
+    void agent.submit(content)
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault()
-      send()
+      void send()
     }
   }
 
@@ -177,7 +196,8 @@ function ArchitectTab({ projectId, isRoomBusy }: ArchitectTabProps) {
     textareaRef.current?.focus()
   }
 
-  const hasContent = agent.messages.length > 0 || agent.isSubmitting
+  const isBusy = isGenerating || chat.isSending
+  const hasContent = transcript.length > 0 || agent.isSubmitting
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -187,9 +207,17 @@ function ArchitectTab({ projectId, isRoomBusy }: ArchitectTabProps) {
             <EmptyState onPick={pickPrompt} />
           ) : (
             <>
-              {agent.messages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
-              ))}
+              {transcript.map((entry) =>
+                entry.kind === "chat" ? (
+                  <ChatMessageBubble
+                    key={entry.id}
+                    message={entry.message}
+                    isOwn={entry.message.sender.id === chat.selfId}
+                  />
+                ) : (
+                  <MessageBubble key={entry.id} message={entry.message} />
+                ),
+              )}
               {agent.isSubmitting && <StatusBubble message={liveStatus} />}
             </>
           )}
@@ -197,6 +225,11 @@ function ArchitectTab({ projectId, isRoomBusy }: ArchitectTabProps) {
       </ScrollArea>
 
       <div className="shrink-0 border-t border-surface-border p-3">
+        {chat.error && (
+          <p role="alert" className="mb-2 px-1 text-xs text-error">
+            {chat.error}
+          </p>
+        )}
         <div className="flex flex-col gap-2 rounded-xl border border-surface-border bg-elevated p-2">
           <Textarea
             ref={textareaRef}
@@ -206,9 +239,9 @@ function ArchitectTab({ projectId, isRoomBusy }: ArchitectTabProps) {
             placeholder={
               isGenerating
                 ? "Ghost AI is working…"
-                : "Describe the system you want to design…"
+                : "Message the room or describe a system to design…"
             }
-            disabled={isGenerating}
+            disabled={isBusy}
             className="max-h-40 min-h-[72px] resize-none border-0 bg-transparent p-1 shadow-none focus-visible:ring-0 dark:bg-transparent"
           />
           <div className="flex items-center justify-between gap-2">
@@ -219,11 +252,11 @@ function ArchitectTab({ projectId, isRoomBusy }: ArchitectTabProps) {
             </span>
             <Button
               size="sm"
-              onClick={send}
-              disabled={!input.trim() || isGenerating}
+              onClick={() => void send()}
+              disabled={!input.trim() || isBusy}
               className="bg-brand text-white hover:bg-brand/90"
             >
-              {isGenerating ? <Loader2 className="animate-spin" /> : <Send />}
+              {isBusy ? <Loader2 className="animate-spin" /> : <Send />}
               Send
             </Button>
           </div>
@@ -231,6 +264,37 @@ function ArchitectTab({ projectId, isRoomBusy }: ArchitectTabProps) {
       </div>
     </div>
   )
+}
+
+/**
+ * One rendered line of the sidebar conversation: either a shared `ai-chat`
+ * message every participant sees, or an AI reply local to whoever started the
+ * run. Kept as separate kinds so chat and AI output never get conflated.
+ */
+type TranscriptEntry =
+  | { kind: "chat"; id: string; timestamp: number; message: AiChatFeedEntry }
+  | { kind: "agent"; id: string; timestamp: number; message: AiChatMessage }
+
+function buildTranscript(
+  chatMessages: AiChatFeedEntry[],
+  agentMessages: AiChatMessage[],
+): TranscriptEntry[] {
+  const entries: TranscriptEntry[] = [
+    ...chatMessages.map<TranscriptEntry>((message) => ({
+      kind: "chat",
+      id: message.id,
+      timestamp: message.timestamp,
+      message,
+    })),
+    ...agentMessages.map<TranscriptEntry>((message) => ({
+      kind: "agent",
+      id: message.id,
+      timestamp: message.timestamp,
+      message,
+    })),
+  ]
+
+  return entries.sort((a, b) => a.timestamp - b.timestamp)
 }
 
 function StatusBubble({ message }: { message: string }) {
@@ -274,7 +338,7 @@ function EmptyState({ onPick }: { onPick: (prompt: string) => void }) {
   )
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({ message }: { message: AiChatMessage }) {
   const isUser = message.role === "user"
   return (
     <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
@@ -290,6 +354,56 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       </div>
     </div>
   )
+}
+
+interface ChatMessageBubbleProps {
+  message: AiChatFeedEntry
+  /** Whether the local user sent it — own messages sit on the right. */
+  isOwn: boolean
+}
+
+/**
+ * A message from the shared `ai-chat` feed. Unlike the AI bubbles above these
+ * come from other people, so each one is attributed with a sender and a time.
+ */
+function ChatMessageBubble({ message, isOwn }: ChatMessageBubbleProps) {
+  return (
+    <div className={cn("flex", isOwn ? "justify-end" : "justify-start")}>
+      <div
+        className={cn(
+          "flex max-w-[85%] flex-col gap-1",
+          isOwn ? "items-end" : "items-start"
+        )}
+      >
+        <div className="flex items-center gap-1.5 px-1 text-xs text-copy-faint">
+          <span className="max-w-[10rem] truncate font-medium text-copy-muted">
+            {isOwn ? "You" : message.sender.name}
+          </span>
+          <time dateTime={new Date(message.timestamp).toISOString()}>
+            {formatTime(message.timestamp)}
+          </time>
+        </div>
+        <div
+          className={cn(
+            "rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap",
+            isOwn
+              ? "border-2 border-brand/50 bg-accent-dim text-copy-primary"
+              : "border border-surface-border bg-elevated text-copy-secondary"
+          )}
+        >
+          {message.content}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Short local time for a chat timestamp, e.g. "2:14 PM". */
+function formatTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  })
 }
 
 function SpecsTab() {

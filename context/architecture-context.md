@@ -62,6 +62,12 @@
   - **Presence** (`thinking`) — whether an individual participant is waiting on an AI run, rendered on their live cursor.
 - The Liveblocks room provider wraps the whole editor workspace (canvas *and* AI sidebar) so both surfaces read the same room state.
 
+### Room Chat
+
+- A second per-room Liveblocks feed, `ai-chat`, carries chat between the people in the room. It is deliberately separate from `ai-status-feed`: mixing them would make a machine progress line indistinguishable from something a teammate said, and the two have different lifetimes and readers.
+- Messages are human-authored only — the AI publishes progress to `ai-status-feed` and its replies stay local to the run's initiator. Payload schema (`sender`, `role`, `content`, `timestamp`) and validation live in `types/tasks.ts`, and every message is validated before it is rendered.
+- Liveblocks types feed payloads globally (`FeedMessageData`), so that type is the union of both feeds' shapes and readers narrow it by parsing.
+
 ### Spec Generation
 
 - Input: current canvas graph and project context.

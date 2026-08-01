@@ -1,16 +1,22 @@
 /**
- * Contracts for background-task status shared through the Liveblocks
- * `ai-status-feed`.
+ * Contracts for the room-scoped Liveblocks feeds the AI sidebar reads.
  *
- * The feed is the room-wide, durable channel for "what is the AI doing right
- * now": every participant subscribes to it, and unlike a broadcast room event
- * it survives long enough for someone who joins mid-run to see the current
- * state. Kept generic across task kinds so spec generation can publish to the
- * same feed later without a second channel.
+ * Two feeds, deliberately kept apart:
+ *
+ * - `ai-status-feed` — the durable channel for "what is the AI doing right
+ *   now". Every participant subscribes, and unlike a broadcast room event it
+ *   survives long enough for someone who joins mid-run to see the current
+ *   state. Generic across task kinds so spec generation can publish to it later
+ *   without a second channel.
+ * - `ai-chat` — human chat between the people in the room. It carries no
+ *   progress or presence information; mixing the two would make a status update
+ *   indistinguishable from something a teammate said.
  *
  * Free of server- and client-only imports so the Trigger.dev task (producer)
  * and the sidebar (consumer) can both use it.
  */
+
+import { z } from "zod"
 
 import type { AiPhase } from "@/types/ai"
 
@@ -73,4 +79,59 @@ function isAiTaskKind(value: unknown): value is AiTaskKind {
 
 function isAiPhase(value: unknown): value is AiPhase {
   return typeof value === "string" && AI_PHASES.includes(value as AiPhase)
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                  ai-chat                                   */
+/* -------------------------------------------------------------------------- */
+
+/** Id of the shared per-room chat feed. Separate from `AI_STATUS_FEED_ID`. */
+export const AI_CHAT_FEED_ID = "ai-chat"
+
+/** Who a chat message is attributed to. Only `user` is written today. */
+export const AI_CHAT_ROLES = ["user", "assistant"] as const
+
+export type AiChatRole = (typeof AI_CHAT_ROLES)[number]
+
+/**
+ * Schema for one `ai-chat` message. Feed payloads arrive over the wire from
+ * other clients, so every message is parsed through this before it is rendered.
+ */
+export const aiChatFeedMessageSchema = z.object({
+  /** Who sent it, denormalized — feed messages carry no author of their own. */
+  sender: z.object({
+    /** Liveblocks/Clerk user id. */
+    id: z.string().min(1),
+    /** Display name resolved at auth time. */
+    name: z.string().min(1),
+    /** Profile image URL, when the sender has one. */
+    avatar: z.string().optional(),
+  }),
+  role: z.enum(AI_CHAT_ROLES),
+  content: z.string().min(1),
+  /** Epoch ms, mirrored into the feed message's own `createdAt` when sent. */
+  timestamp: z.number().int().nonnegative(),
+})
+
+/**
+ * A single `ai-chat` message.
+ *
+ * Inferred from the schema (rather than declared and validated separately) so
+ * the runtime check and the compile-time shape can never drift apart. `z.infer`
+ * yields an anonymous object type, which — like the `type` alias above — TS
+ * treats as index-signature-compatible with Liveblocks' JSON constraint.
+ */
+export type AiChatFeedMessage = z.infer<typeof aiChatFeedMessageSchema>
+
+/**
+ * Validate an untrusted chat payload before it is displayed. Anything that
+ * doesn't match the schema is dropped rather than rendered — the same feed API
+ * also carries status messages, and a client running older code may have
+ * written a shape this one doesn't understand.
+ */
+export function parseAiChatFeedMessage(
+  data: unknown,
+): AiChatFeedMessage | null {
+  const result = aiChatFeedMessageSchema.safeParse(data)
+  return result.success ? result.data : null
 }

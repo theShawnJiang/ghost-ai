@@ -1,5 +1,5 @@
 import type { AiStatusEvent } from "@/types/ai";
-import type { AiStatusFeedMessage } from "@/types/tasks";
+import type { AiChatFeedMessage, AiStatusFeedMessage } from "@/types/tasks";
 
 // Define Liveblocks types for your application
 // https://liveblocks.io/docs/api-reference/liveblocks-react#Typing-your-data
@@ -17,10 +17,14 @@ declare global {
     // presence (the moving AI cursor) here — high frequency, never persisted.
     RoomEvent: AiStatusEvent;
 
-    // Payload of every `ai-status-feed` message. Unlike the broadcast above,
-    // feed messages persist, so a participant who joins mid-run still sees the
-    // current AI status.
-    FeedMessageData: AiStatusFeedMessage;
+    // Payload of every feed message. Unlike the broadcast above, feed messages
+    // persist, so a participant who joins mid-run still sees the current AI
+    // status. Liveblocks types feed data globally rather than per feed, so this
+    // is the union of the room's two feeds — `ai-status-feed` (AI progress) and
+    // `ai-chat` (human chat). Readers of either feed narrow the union by
+    // parsing the payload (`parseAiStatusFeedMessage` / `parseAiChatFeedMessage`)
+    // before rendering it.
+    FeedMessageData: AiStatusFeedMessage | AiChatFeedMessage;
 
     // Custom user info set when authenticating with a secret key
     UserMeta: {
