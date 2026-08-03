@@ -18,7 +18,7 @@
 
 import { z } from "zod"
 
-import type { AiPhase } from "@/types/ai"
+import { AI_PRESENCE_NAME, type AiPhase } from "@/types/ai"
 
 /** Id of the shared per-room status feed. One feed per Liveblocks room. */
 export const AI_STATUS_FEED_ID = "ai-status-feed"
@@ -88,10 +88,20 @@ function isAiPhase(value: unknown): value is AiPhase {
 /** Id of the shared per-room chat feed. Separate from `AI_STATUS_FEED_ID`. */
 export const AI_CHAT_FEED_ID = "ai-chat"
 
-/** Who a chat message is attributed to. Only `user` is written today. */
+/** Who a chat message is attributed to: a person, or Ghost AI itself. */
 export const AI_CHAT_ROLES = ["user", "assistant"] as const
 
 export type AiChatRole = (typeof AI_CHAT_ROLES)[number]
+
+/**
+ * Sender stamped on messages the AI publishes into `ai-chat` (run summaries and
+ * failures). Fixed rather than per-user: the AI's replies belong to the room,
+ * not to whoever happened to start the run.
+ */
+export const AI_CHAT_SENDER = {
+  id: "ghost-ai",
+  name: AI_PRESENCE_NAME,
+} as const
 
 /**
  * Schema for one `ai-chat` message. Feed payloads arrive over the wire from

@@ -8,7 +8,12 @@ import { designAgent } from "@/trigger/design-agent";
 /**
  * Trigger a design generation run. The handler validates input and ownership,
  * fires the durable `design-agent` task, records the run for later ownership
- * checks, and returns the run id — no long-lived work runs here (Invariant 1).
+ * checks, and returns the run id plus a run-scoped public token — no long-lived
+ * work runs here (Invariant 1).
+ *
+ * The token comes back with the trigger handle already, so the client can
+ * subscribe to the run from this single response rather than making a second
+ * round trip to mint one.
  */
 export async function POST(request: Request) {
   const identity = await getCurrentIdentity();
@@ -19,12 +24,16 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
   const roomId = typeof body?.roomId === "string" ? body.roomId.trim() : "";
+  // The room id is the project id (projects are created with matching ids), so
+  // an explicit `projectId` is accepted but optional.
   const projectId =
-    typeof body?.projectId === "string" ? body.projectId.trim() : "";
+    typeof body?.projectId === "string" && body.projectId.trim()
+      ? body.projectId.trim()
+      : roomId;
 
-  if (!prompt || !roomId || !projectId) {
+  if (!prompt || !roomId) {
     return Response.json(
-      { error: "prompt, roomId, and projectId are required" },
+      { error: "prompt and roomId are required" },
       { status: 400 }
     );
   }
@@ -44,5 +53,8 @@ export async function POST(request: Request) {
     },
   });
 
-  return Response.json({ runId: handle.id }, { status: 202 });
+  return Response.json(
+    { runId: handle.id, publicToken: handle.publicAccessToken },
+    { status: 202 }
+  );
 }

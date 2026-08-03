@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 /**
  * Shape of the `design-agent` task output. Declared here rather than inferred
@@ -13,108 +13,115 @@ export interface DesignRunOutput {
   appliedOperations: number
 }
 
-export interface AiChatMessage {
-  id: string
-  role: "user" | "assistant"
-  content: string
-  /** Epoch ms, so these interleave correctly with shared `ai-chat` messages. */
-  timestamp: number
+/** What `POST /api/ai/design` returns: the run and a token scoped to reading it. */
+interface DesignTriggerResponse {
+  runId: string
+  publicToken: string
 }
+
+export interface UseDesignAgentOptions {
+  /** Room the design targets — also the project id. */
+  roomId: string
+  /**
+   * Publishes an AI reply to the room's shared `ai-chat` feed. Summaries and
+   * failures both go through here so every participant sees the outcome, not
+   * just whoever started the run.
+   */
+  onAiMessage: (content: string) => void
+}
+
+export interface DesignAgentState {
+  /** Start a run for `prompt`. No-ops while a run is already in flight. */
+  submit: (prompt: string) => Promise<void>
+  /** Whether this user's run is still going. */
+  isRunning: boolean
+  /** Trigger.dev run id, while a run is active. */
+  runId: string | undefined
+  /** Run-scoped public token used to subscribe to that run. */
+  publicToken: string | undefined
+  /** Call when the run reaches a terminal state; resets the run state. */
+  handleComplete: (
+    output: DesignRunOutput | undefined,
+    error: Error | undefined,
+  ) => void
+}
+
+const START_ERROR =
+  "Sorry — I couldn't start the design. Please try again in a moment."
+const RUN_ERROR = "Ghost AI couldn't finish this design. Please try again."
+const RUN_DONE = "Design generation finished."
 
 /**
  * Drives an AI design generation from the sidebar: posts the prompt to the
- * trigger route, mints a run-scoped realtime token, and tracks the AI's replies.
- * The subscription itself (`useRealtimeRun`) lives in the component so it can be
- * wired to this hook's `runId`/`accessToken` and `handleComplete`.
+ * trigger route and keeps the returned run id + token so the caller can
+ * subscribe to progress. The subscription itself (`useRealtimeRun`) lives in the
+ * component so it can be wired to this hook's `runId`/`publicToken` and
+ * `handleComplete`.
  *
- * Only the AI's own replies are tracked here, and only for the user who started
- * the run. The prompt itself is published to the room's shared `ai-chat` feed
- * instead, so every participant sees who asked for what.
+ * The hook holds no transcript of its own — the prompt and the AI's replies are
+ * both published to the room's shared `ai-chat` feed, so the conversation is the
+ * same for everyone in the room.
  */
-export function useDesignAgent(projectId: string) {
-  const [messages, setMessages] = useState<AiChatMessage[]>([])
+export function useDesignAgent({
+  roomId,
+  onAiMessage,
+}: UseDesignAgentOptions): DesignAgentState {
   const [runId, setRunId] = useState<string | undefined>(undefined)
-  const [accessToken, setAccessToken] = useState<string | undefined>(undefined)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [publicToken, setPublicToken] = useState<string | undefined>(undefined)
+  const [isRunning, setIsRunning] = useState(false)
+
+  // Kept in a ref so a caller re-creating the callback doesn't change `submit`'s
+  // identity. Written in an effect, never during render.
+  const onAiMessageRef = useRef(onAiMessage)
+  useEffect(() => {
+    onAiMessageRef.current = onAiMessage
+  }, [onAiMessage])
 
   const submit = useCallback(
     async (prompt: string) => {
       const content = prompt.trim()
-      if (!content || isSubmitting) return
+      if (!content || isRunning) return
 
-      setIsSubmitting(true)
+      setIsRunning(true)
 
       try {
-        const designRes = await fetch("/api/ai/design", {
+        const response = await fetch("/api/ai/design", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: content, roomId: projectId, projectId }),
+          body: JSON.stringify({ prompt: content, roomId }),
         })
-        if (!designRes.ok) throw new Error("Failed to start design generation")
-        const { runId: newRunId } = (await designRes.json()) as { runId: string }
+        if (!response.ok) throw new Error("Failed to start design generation")
 
-        const tokenRes = await fetch("/api/ai/design/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ runId: newRunId }),
-        })
-        if (!tokenRes.ok) throw new Error("Failed to authorize design run")
-        const { token } = (await tokenRes.json()) as { token: string }
+        const { runId: newRunId, publicToken: newToken } =
+          (await response.json()) as DesignTriggerResponse
 
         setRunId(newRunId)
-        setAccessToken(token)
+        setPublicToken(newToken)
       } catch {
-        setIsSubmitting(false)
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            content:
-              "Sorry — I couldn't start the design. Please try again in a moment.",
-            timestamp: Date.now(),
-          },
-        ])
+        setIsRunning(false)
+        onAiMessageRef.current(START_ERROR)
       }
     },
-    [isSubmitting, projectId],
+    [isRunning, roomId],
   )
 
   /**
    * Called once when the run reaches a terminal state (via `useRealtimeRun`'s
-   * `onComplete`). Appends the AI's closing message and resets the subscription.
+   * `onComplete`). Publishes the AI's closing message and drops the subscription.
    */
   const handleComplete = useCallback(
     (output: DesignRunOutput | undefined, error: Error | undefined) => {
-      const content =
-        !error && output?.summary
-          ? output.summary
-          : error
-            ? "Ghost AI couldn't finish this design. Please try again."
-            : "Design generation finished."
+      const content = error
+        ? RUN_ERROR
+        : (output?.summary?.trim() ?? "") || RUN_DONE
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content,
-          timestamp: Date.now(),
-        },
-      ])
-      setIsSubmitting(false)
+      onAiMessageRef.current(content)
+      setIsRunning(false)
       setRunId(undefined)
-      setAccessToken(undefined)
+      setPublicToken(undefined)
     },
     [],
   )
 
-  return {
-    messages,
-    submit,
-    isSubmitting,
-    runId,
-    accessToken,
-    handleComplete,
-  }
+  return { submit, isRunning, runId, publicToken, handleComplete }
 }

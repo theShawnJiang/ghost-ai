@@ -10,6 +10,7 @@ import {
 
 import {
   AI_CHAT_FEED_ID,
+  AI_CHAT_SENDER,
   parseAiChatFeedMessage,
   type AiChatFeedMessage,
 } from "@/types/tasks"
@@ -41,6 +42,11 @@ export interface AiChatFeedState {
   error: string | null
   /** Publish a message to the room. Resolves `true` when it was accepted. */
   send: (content: string) => Promise<boolean>
+  /**
+   * Publish an AI reply (a run summary or failure) to the room, attributed to
+   * Ghost AI. Called by whoever owns the run, so it is written exactly once.
+   */
+  sendAiMessage: (content: string) => Promise<boolean>
 }
 
 /**
@@ -97,6 +103,22 @@ export function useAiChatFeed(): AiChatFeedState {
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // `createdAt` is passed explicitly so the feed's ordering key and the
+  // displayed timestamp are the same number.
+  const publish = useCallback(
+    async (message: AiChatFeedMessage): Promise<boolean> => {
+      try {
+        await createFeedMessage(AI_CHAT_FEED_ID, message, {
+          createdAt: message.timestamp,
+        })
+        return true
+      } catch {
+        return false
+      }
+    },
+    [createFeedMessage],
+  )
+
   const send = useCallback(
     async (content: string): Promise<boolean> => {
       const trimmed = content.trim()
@@ -111,31 +133,42 @@ export function useAiChatFeed(): AiChatFeedState {
         return false
       }
 
-      const message: AiChatFeedMessage = {
-        sender: {
-          id: senderId(self.id, self.info.name),
-          name: self.info.name,
-          ...(self.info.avatar ? { avatar: self.info.avatar } : {}),
-        },
-        role: "user",
-        content: trimmed,
-        timestamp: Date.now(),
-      }
-
       setIsSending(true)
       try {
-        await createFeedMessage(AI_CHAT_FEED_ID, message, {
-          createdAt: message.timestamp,
+        const sent = await publish({
+          sender: {
+            id: senderId(self.id, self.info.name),
+            name: self.info.name,
+            ...(self.info.avatar ? { avatar: self.info.avatar } : {}),
+          },
+          role: "user",
+          content: trimmed,
+          timestamp: Date.now(),
         })
-        return true
-      } catch {
-        setError(SEND_ERROR)
-        return false
+        if (!sent) setError(SEND_ERROR)
+        return sent
       } finally {
         setIsSending(false)
       }
     },
-    [createFeedMessage, self],
+    [publish, self],
+  )
+
+  // Not tied to `isSending`/`error`: those describe the composer, and an AI
+  // reply arrives on its own schedule rather than from something being typed.
+  const sendAiMessage = useCallback(
+    (content: string): Promise<boolean> => {
+      const trimmed = content.trim()
+      if (!trimmed) return Promise.resolve(false)
+
+      return publish({
+        sender: { ...AI_CHAT_SENDER },
+        role: "assistant",
+        content: trimmed,
+        timestamp: Date.now(),
+      })
+    },
+    [publish],
   )
 
   return {
@@ -145,6 +178,7 @@ export function useAiChatFeed(): AiChatFeedState {
     isSending,
     error,
     send,
+    sendAiMessage,
   }
 }
 
