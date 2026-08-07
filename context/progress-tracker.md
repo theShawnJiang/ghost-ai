@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Feature 26: Design Agent Frontend — the AI sidebar submits design prompts, tracks the run in realtime, and reflects AI canvas updates through Liveblocks.
+- Feature 26 (Design Agent Frontend) is delivered — the AI sidebar submits design prompts, tracks the run in realtime, and reflects AI canvas updates through Liveblocks. Next spec on deck: Feature 27 (Spec Generation Flow), `context/feature-specs/27-spec-generation-flow.md`, not yet started.
 
 ## Completed
 
