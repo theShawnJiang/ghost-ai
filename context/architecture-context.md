@@ -70,9 +70,12 @@
 
 ### Spec Generation
 
-- Input: current canvas graph and project context.
-- Execution: durable background task via Trigger.dev.
-- Output: Markdown technical spec saved to the filesystem and linked to the project in the database.
+- Input: current canvas graph plus the room's chat history. Project context is resolved server-side from the authenticated user and the room id — never from a client-supplied project id.
+- Execution: durable background task via Trigger.dev (Gemini via `@ai-sdk/google`).
+- Output: a Markdown technical spec returned as the task's output.
+- Status: mirrored to the triggering user through run metadata and to the whole room through the shared `ai-status-feed` (`kind: "spec"`), the same two channels design generation uses. The task writes nothing to the canvas.
+- Persistence: not yet implemented. When added, the Markdown belongs in Vercel Blob at `specs/{projectId}/{specId}.md` with the blob URL on a `Spec` record, per the storage model above.
+- Access to a run's realtime progress is granted by a run-scoped Trigger.dev public token, issued only to the user recorded as the run's owner in `TaskRun`.
 
 ## Invariants
 
