@@ -1,9 +1,11 @@
 import { logger, metadata, schemaTask } from "@trigger.dev/sdk";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
+import { put } from "@vercel/blob";
 
 import { publishAiStatus } from "@/lib/ai-status-feed";
 import { getLiveblocks } from "@/lib/liveblocks";
+import { prisma } from "@/lib/prisma";
 import {
   generateSpecPayloadSchema,
   type SpecChatMessage,
@@ -21,14 +23,18 @@ import type { AiStatusFeedMessage } from "@/types/tasks";
  *  1. Publish a `start` status so the room knows a spec run is in flight.
  *  2. Summarize the canvas graph + chat history into a single prompt.
  *  3. Ask Gemini for the spec as plain Markdown.
- *  4. Publish `complete` (or `error`) and return the Markdown as task output.
+ *  4. Upload the Markdown to Vercel Blob and record a `ProjectSpec` row.
+ *  5. Publish `complete` (or `error`) and return the Markdown as task output.
  *
  * Status goes to two places, mirroring `design-agent`: run `metadata`, for the
  * triggering user's realtime run subscription, and the shared `ai-status-feed`
  * (with `kind: "spec"`), so every participant's sidebar sees the run — not just
  * whoever started it.
  *
- * This task writes nothing: the spec is returned, not persisted.
+ * Persistence follows the canvas snapshot pattern (Feature 21): the Markdown
+ * lives in Vercel Blob, and Prisma stores only the blob URL as metadata. The
+ * blob URL is never returned to the client — `specId` is, and the content is
+ * served through the access-checked download route.
  */
 
 /** Gemini model used to write the spec. Matches the design agent's model. */
@@ -60,8 +66,10 @@ Content rules:
 export const generateSpec = schemaTask({
   id: "generate-spec",
   schema: generateSpecPayloadSchema,
-  // Safe to retry, unlike `design-agent`: this task writes nothing outside its
-  // own status updates, so a second attempt can't duplicate anything durable.
+  // Safe to retry, unlike `design-agent`: nothing durable is written until the
+  // spec is in hand, and each attempt persists under a fresh spec id, so a
+  // retry can only ever leave an orphaned blob — never a duplicate or a
+  // half-written record the canvas would have to reconcile.
   retry: { maxAttempts: 2 },
   run: async (payload) => {
     const { projectId, roomId, chatHistory, nodes, edges } = payload;
@@ -126,14 +134,18 @@ export const generateSpec = schemaTask({
         throw new Error("The model returned an empty spec.");
       }
 
+      await publish("processing", "Saving your spec…");
+      const specId = await persistSpec(projectId, spec);
+
       await publish("complete", "Technical spec ready.");
       logger.info("generate-spec finished", {
         projectId,
         roomId,
+        specId,
         specLength: spec.length,
       });
 
-      return { projectId, roomId, spec };
+      return { projectId, roomId, specId, spec };
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Spec generation failed.";
@@ -143,6 +155,33 @@ export const generateSpec = schemaTask({
     }
   },
 });
+
+/**
+ * Store the generated Markdown and return the new spec's id.
+ *
+ * The blob path is derived from the spec id, so the id is generated up front:
+ * that keeps the upload and the record a single write each, with no window in
+ * which a `ProjectSpec` row points at a file that was never uploaded. Only the
+ * blob URL is kept in Postgres — the Markdown itself never touches the database.
+ */
+async function persistSpec(projectId: string, spec: string): Promise<string> {
+  const specId = crypto.randomUUID();
+
+  const blob = await put(`specs/${projectId}/${specId}.md`, spec, {
+    // The store is private, matching the canvas snapshots: the URL alone grants
+    // no access, so reads have to go through the download route.
+    access: "private",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "text/markdown",
+  });
+
+  await prisma.projectSpec.create({
+    data: { id: specId, projectId, filePath: blob.url },
+  });
+
+  return specId;
+}
 
 /** Build the per-run user prompt from the canvas graph and the conversation. */
 function buildUserPrompt(

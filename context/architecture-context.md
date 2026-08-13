@@ -74,8 +74,9 @@
 - Execution: durable background task via Trigger.dev (Gemini via `@ai-sdk/google`).
 - Output: a Markdown technical spec returned as the task's output.
 - Status: mirrored to the triggering user through run metadata and to the whole room through the shared `ai-status-feed` (`kind: "spec"`), the same two channels design generation uses. The task writes nothing to the canvas.
-- Persistence: not yet implemented. When added, the Markdown belongs in Vercel Blob at `specs/{projectId}/{specId}.md` with the blob URL on a `Spec` record, per the storage model above.
+- Persistence: the task uploads the Markdown to Vercel Blob at `specs/{projectId}/{specId}.md` (private store) and records a `ProjectSpec` row holding only the blob URL in `filePath`, per the storage model above. The spec id is generated before the upload so the blob path and the record id always agree.
 - Access to a run's realtime progress is granted by a run-scoped Trigger.dev public token, issued only to the user recorded as the run's owner in `TaskRun`.
+- Retrieval: `GET /api/projects/[projectId]/specs/[specId]/download` streams the stored Markdown back as an attachment after verifying the user, the project membership, and that the spec belongs to that project. Blob URLs are never handed to the client — the private store means a leaked URL is not a leaked spec, and this route is the only read path.
 
 ## Invariants
 
