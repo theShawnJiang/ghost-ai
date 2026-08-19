@@ -92,3 +92,18 @@ export type SpecEdge = z.infer<typeof specEdgeSchema>
 export type SpecChatMessage = z.infer<typeof specChatMessageSchema>
 export type SpecRequest = z.infer<typeof specRequestSchema>
 export type GenerateSpecPayload = z.infer<typeof generateSpecPayloadSchema>
+
+/**
+ * One row of the specs list returned by `GET /api/projects/[projectId]/specs`.
+ *
+ * Metadata only, mirroring the storage model: `ProjectSpec.filePath` is a
+ * private blob URL and never crosses to the client, so a spec's content is read
+ * through the download route rather than from anything in this shape.
+ */
+export interface ProjectSpecSummary {
+  id: string
+  /** ISO 8601 — `Date` doesn't survive the JSON boundary. */
+  createdAt: string
+  /** Name this spec downloads as, matching the download route's attachment. */
+  filename: string
+}

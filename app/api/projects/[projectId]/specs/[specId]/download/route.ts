@@ -5,7 +5,7 @@ import {
   getCurrentIdentity,
 } from "@/lib/project-access";
 import { prisma } from "@/lib/prisma";
-import { toSlug } from "@/lib/slug";
+import { specDownloadFilename } from "@/lib/spec-file";
 
 /**
  * Download a generated spec as a Markdown file.
@@ -50,7 +50,7 @@ export async function GET(
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  const filename = `${toSlug(project.name) || "project"}-spec.md`;
+  const filename = specDownloadFilename(project.name);
 
   return new Response(result.stream, {
     headers: {

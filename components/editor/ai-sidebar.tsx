@@ -5,7 +5,11 @@ import { useRealtimeRun } from "@trigger.dev/react-hooks"
 import { Bot, Download, FileText, Loader2, Send, X } from "lucide-react"
 
 import { AiStatusIndicator } from "@/components/editor/ai-status-indicator"
-import { Button } from "@/components/ui/button"
+import {
+  SpecPreviewDialog,
+  formatTimestamp,
+} from "@/components/editor/spec-preview-dialog"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Tabs,
@@ -23,8 +27,11 @@ import {
   useDesignAgent,
   type DesignRunOutput,
 } from "@/hooks/use-design-agent"
+import { useProjectSpecs } from "@/hooks/use-project-specs"
 import { useThinkingPresence } from "@/hooks/use-thinking-presence"
+import { specDownloadUrl } from "@/lib/spec-file"
 import { cn } from "@/lib/utils"
+import type { ProjectSpecSummary } from "@/types/spec"
 import type { AiStatusFeedMessage } from "@/types/tasks"
 
 interface AiSidebarProps {
@@ -108,7 +115,7 @@ export function AiSidebar({ isOpen, onClose, projectId }: AiSidebarProps) {
           value="specs"
           className="min-h-0 flex-1 overflow-hidden"
         >
-          <SpecsTab />
+          <SpecsTab projectId={projectId} />
         </TabsContent>
       </Tabs>
     </aside>
@@ -349,41 +356,117 @@ function formatTime(timestamp: number): string {
   })
 }
 
-function SpecsTab() {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
-      <Button className="w-full bg-brand text-white hover:bg-brand/90">
-        <FileText />
-        Generate Spec
-      </Button>
+function SpecsTab({ projectId }: { projectId: string }) {
+  const { specs, isLoading, error } = useProjectSpecs(projectId)
+  // Which spec the preview is showing. Only the metadata is held here — the
+  // Markdown lives in the dialog for as long as it is open, and no longer.
+  const [selected, setSelected] = useState<ProjectSpecSummary | null>(null)
 
-      <SpecCard />
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+      <div className="shrink-0 px-4">
+        <Button className="w-full bg-brand text-white hover:bg-brand/90">
+          <FileText />
+          Generate Spec
+        </Button>
+      </div>
+
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="flex flex-col gap-2 px-4 pb-4">
+          {isLoading && (
+            <div className="flex items-center gap-2 px-1 py-3 text-xs text-copy-muted">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Loading specs…
+            </div>
+          )}
+
+          {error && (
+            <p role="alert" className="px-1 py-3 text-xs text-error">
+              {error}
+            </p>
+          )}
+
+          {!isLoading && !error && specs.length === 0 && <SpecsEmptyState />}
+
+          {specs.map((spec) => (
+            <SpecListItem
+              key={spec.id}
+              projectId={projectId}
+              spec={spec}
+              onSelect={() => setSelected(spec)}
+            />
+          ))}
+        </div>
+      </ScrollArea>
+
+      <SpecPreviewDialog
+        projectId={projectId}
+        spec={selected}
+        onClose={() => setSelected(null)}
+      />
     </div>
   )
 }
 
-function SpecCard() {
+interface SpecListItemProps {
+  projectId: string
+  spec: ProjectSpecSummary
+  onSelect: () => void
+}
+
+/**
+ * One generated spec: created time and filename, opening the preview when
+ * picked. Download is a plain link to the download route, so the browser handles
+ * saving the file rather than the client buffering it.
+ */
+function SpecListItem({ projectId, spec, onSelect }: SpecListItemProps) {
   return (
-    <div className="rounded-2xl border border-surface-border bg-elevated p-4">
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-subtle text-brand">
+    <div className="flex items-center gap-2 rounded-xl border border-surface-border bg-elevated pr-2 transition-colors hover:border-border-subtle">
+      <button
+        type="button"
+        onClick={onSelect}
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-xl p-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+      >
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-subtle text-brand">
           <FileText className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-medium text-copy-primary">
-            System Architecture Spec
-          </h3>
-          <p className="mt-1 text-xs text-copy-muted">
-            A generated technical specification describing the services, data
-            flow, and deployment topology for your canvas design.
-          </p>
-        </div>
+        </span>
+        <span className="flex min-w-0 flex-col">
+          <span className="text-xs text-copy-muted">
+            {formatTimestamp(spec.createdAt)}
+          </span>
+          <span className="truncate text-sm font-medium text-copy-primary">
+            {spec.filename}
+          </span>
+        </span>
+      </button>
+      {/* A plain anchor, not a Button: the browser owns the download, and a
+          real link keeps Enter, middle-click, and "Save link as". */}
+      <a
+        href={specDownloadUrl(projectId, spec.id)}
+        download={spec.filename}
+        aria-label={`Download ${spec.filename}`}
+        className={cn(
+          buttonVariants({ variant: "ghost", size: "icon-sm" }),
+          "cursor-pointer"
+        )}
+      >
+        <Download />
+      </a>
+    </div>
+  )
+}
+
+function SpecsEmptyState() {
+  return (
+    <div className="flex flex-col items-center gap-3 py-10 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-dim text-brand">
+        <FileText className="h-8 w-8" />
       </div>
-      <div className="mt-3 flex justify-end">
-        <Button variant="outline" size="sm" disabled>
-          <Download />
-          Download
-        </Button>
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-copy-primary">No specs yet</p>
+        <p className="text-xs text-copy-muted">
+          Generate a spec and it will show up here, ready to read and download.
+        </p>
       </div>
     </div>
   )
