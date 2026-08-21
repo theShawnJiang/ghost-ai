@@ -42,7 +42,7 @@ export interface DesignAgentPayload {
 }
 
 /** Gemini model used to interpret prompts into structured design operations. */
-const DESIGN_MODEL = "gemini-2.0-flash";
+const DESIGN_MODEL = "gemini-3.6-flash";
 
 /**
  * Layout guidance the model must follow so generated diagrams stay readable:

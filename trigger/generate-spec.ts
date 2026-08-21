@@ -38,7 +38,7 @@ import type { AiStatusFeedMessage } from "@/types/tasks";
  */
 
 /** Gemini model used to write the spec. Matches the design agent's model. */
-const SPEC_MODEL = "gemini-2.0-flash";
+const SPEC_MODEL = "gemini-3.6-flash";
 
 /**
  * Most recent chat messages included in the prompt. The room's history can grow

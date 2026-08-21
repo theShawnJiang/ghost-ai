@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Trigger.dev build scratch, written by `trigger dev`/`deploy`.
+    ".trigger/**",
   ]),
 ]);
 
