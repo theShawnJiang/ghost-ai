@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Liveblocks } from "@liveblocks/node";
 
+import { publishFeedMessage } from "@/lib/liveblocks-feed";
 import { AI_STATUS_FEED_ID, type AiStatusFeedMessage } from "@/types/tasks";
 
 /**
@@ -12,28 +13,6 @@ import { AI_STATUS_FEED_ID, type AiStatusFeedMessage } from "@/types/tasks";
  * Publishing is best-effort — a failed status write must never abort the work
  * the task is actually doing — so callers get a boolean instead of a throw.
  */
-
-/** Rooms whose feed this process has already ensured, so we create it once. */
-const ensuredRooms = new Set<string>();
-
-/**
- * Create the room's status feed if it doesn't exist yet. Creation races (two
- * runs starting at once) and "already exists" responses are both fine: either
- * way the feed is there afterwards.
- */
-async function ensureAiStatusFeed(
-  liveblocks: Liveblocks,
-  roomId: string,
-): Promise<void> {
-  if (ensuredRooms.has(roomId)) return;
-
-  try {
-    await liveblocks.createFeed({ roomId, feedId: AI_STATUS_FEED_ID });
-  } catch {
-    // Already created (by an earlier run or a concurrent one) — nothing to do.
-  }
-  ensuredRooms.add(roomId);
-}
 
 /**
  * Append a status message to the room's `ai-status-feed`.
@@ -47,15 +26,5 @@ export async function publishAiStatus(
   roomId: string,
   message: AiStatusFeedMessage,
 ): Promise<boolean> {
-  try {
-    await ensureAiStatusFeed(liveblocks, roomId);
-    await liveblocks.createFeedMessage({
-      roomId,
-      feedId: AI_STATUS_FEED_ID,
-      data: message,
-    });
-    return true;
-  } catch {
-    return false;
-  }
+  return publishFeedMessage(liveblocks, roomId, AI_STATUS_FEED_ID, message);
 }
