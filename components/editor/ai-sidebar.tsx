@@ -23,10 +23,7 @@ import {
   type AiChatFeedEntry,
 } from "@/hooks/use-ai-chat-feed"
 import { useAiStatusFeed } from "@/hooks/use-ai-status-feed"
-import {
-  useDesignAgent,
-  type DesignRunOutput,
-} from "@/hooks/use-design-agent"
+import { useDesignAgent } from "@/hooks/use-design-agent"
 import { useProjectSpecs } from "@/hooks/use-project-specs"
 import { useThinkingPresence } from "@/hooks/use-thinking-presence"
 import { specDownloadUrl } from "@/lib/spec-file"
@@ -143,8 +140,9 @@ function ArchitectTab({ projectId, status, isRoomBusy }: ArchitectTabProps) {
   // strip, so a teammate's message and a progress line never blur together.
   const chat = useAiChatFeed()
 
-  // The AI's replies (and its failures) are room messages too, so they go to the
-  // same feed rather than staying local to whoever started the run.
+  // Ghost AI publishes its own replies from the task, so this is only reached
+  // for failures no task could report: the trigger request never landed, or the
+  // run died before running any of its own code.
   const { sendAiMessage } = chat
   const publishAiMessage = useCallback(
     (content: string) => {
@@ -165,17 +163,16 @@ function ArchitectTab({ projectId, status, isRoomBusy }: ArchitectTabProps) {
   // Let the rest of the room see this user waiting on the AI, via their cursor.
   useThinkingPresence(agent.isRunning)
 
-  // Subscribe to the active run so completion can be reported back into the
-  // chat. The token from the trigger response authorizes reading just this run;
-  // when idle there is nothing to subscribe to.
-  useRealtimeRun(agent.runId, {
+  // Subscribe to the active run to unlock the composer when it ends and to show
+  // how far it has got before it publishes any status of its own. The token from
+  // the trigger response authorizes reading just this run; when idle there is
+  // nothing to subscribe to. Only `status` is read, so the heavier columns stay
+  // off the wire.
+  const { run } = useRealtimeRun(agent.runId, {
     accessToken: agent.publicToken,
     enabled: Boolean(agent.runId && agent.publicToken),
-    onComplete: (completedRun, err) =>
-      agent.handleComplete(
-        completedRun.output as DesignRunOutput | undefined,
-        err,
-      ),
+    skipColumns: ["payload", "output", "metadata"],
+    onComplete: (completedRun) => agent.handleComplete(completedRun.status),
   })
 
   async function send() {
@@ -226,8 +223,14 @@ function ArchitectTab({ projectId, status, isRoomBusy }: ArchitectTabProps) {
 
       <div className="shrink-0 border-t border-surface-border p-3">
         {/* Only rendered while a run is active — the strip is progress, not
-            history; finished and failed runs speak through the chat feed. */}
-        <AiStatusIndicator status={isRoomBusy ? status : null} />
+            history; finished and failed runs speak through the chat feed.
+            `pendingText` covers the gap before the task's first status: the run
+            can sit queued and cold-starting for tens of seconds, and a locked
+            composer with no explanation reads as a broken app. */}
+        <AiStatusIndicator
+          status={isRoomBusy ? status : null}
+          pendingText={agent.isRunning ? pendingStatusText(run?.status) : null}
+        />
         {chat.error && (
           <p role="alert" className="mb-2 px-1 text-xs text-error">
             {chat.error}
@@ -267,6 +270,24 @@ function ArchitectTab({ projectId, status, isRoomBusy }: ArchitectTabProps) {
       </div>
     </div>
   )
+}
+
+/**
+ * What the strip says while this user's run exists but has not reached its own
+ * code yet. Mirrors the Trigger.dev run lifecycle rather than the AI phases:
+ * these are the states before the task can publish anything.
+ */
+function pendingStatusText(status: string | undefined): string {
+  switch (status) {
+    case undefined:
+      return "Sending your prompt…"
+    case "PENDING_VERSION":
+    case "QUEUED":
+    case "DELAYED":
+      return "Queued — waiting for a worker…"
+    default:
+      return "Ghost AI is starting up…"
+  }
 }
 
 function EmptyState({ onPick }: { onPick: (prompt: string) => void }) {

@@ -4,6 +4,7 @@ import { generateObject } from "ai";
 import { mutateFlow } from "@liveblocks/react-flow/node";
 import { z } from "zod";
 
+import { publishAiChatMessage } from "@/lib/ai-chat-feed";
 import { publishAiStatus } from "@/lib/ai-status-feed";
 import { getLiveblocks } from "@/lib/liveblocks";
 import {
@@ -56,6 +57,9 @@ const STEP_DELAY_MS = 130;
 
 /** Cap operations to keep a single run bounded in time and canvas size. */
 const MAX_OPERATIONS = 60;
+
+/** What the room is told when a run fails, in both the status feed and chat. */
+const FAILURE_MESSAGE = "Ghost AI couldn't finish this design.";
 
 const NODE_COLOR_IDS = NODE_COLORS.map((color) => color.id) as [
   NodeColor,
@@ -237,12 +241,9 @@ export const designAgent = task({
         }
       }
 
-      await publish(
-        "complete",
-        object.summary || "Design complete.",
-        false,
-        null,
-      );
+      const summary = object.summary || "Design complete.";
+      await publish("complete", summary, false, null);
+      await sayInChat(liveblocks, roomId, summary);
 
       logger.info("design-agent finished", { roomId, applied });
       return { roomId, summary: object.summary, appliedOperations: applied };
@@ -251,7 +252,8 @@ export const designAgent = task({
         error instanceof Error ? error.message : "Design generation failed.";
       logger.error("design-agent failed", { roomId, error: message });
       // Surface the failure and clear AI presence so it doesn't stick.
-      await publish("error", "Ghost AI couldn't finish this design.", false, null);
+      await publish("error", FAILURE_MESSAGE, false, null);
+      await sayInChat(liveblocks, roomId, FAILURE_MESSAGE);
       throw error;
     }
   },
@@ -376,6 +378,23 @@ async function applyOperation(
     },
   );
   return changed;
+}
+
+/**
+ * Publish one of Ghost AI's replies to the room chat, logging rather than
+ * throwing when it doesn't land. By the time this is called the run has already
+ * written to the shared canvas (or already failed), so an undelivered message
+ * is not worth failing — or retrying — the run over.
+ */
+async function sayInChat(
+  liveblocks: ReturnType<typeof getLiveblocks>,
+  roomId: string,
+  content: string,
+): Promise<void> {
+  const published = await publishAiChatMessage(liveblocks, roomId, content);
+  if (!published) {
+    logger.warn("design-agent chat publish failed", { roomId });
+  }
 }
 
 function sleep(ms: number): Promise<void> {

@@ -65,7 +65,8 @@
 ### Room Chat
 
 - A second per-room Liveblocks feed, `ai-chat`, carries chat between the people in the room. It is deliberately separate from `ai-status-feed`: mixing them would make a machine progress line indistinguishable from something a teammate said, and the two have different lifetimes and readers.
-- Messages are human-authored only — the AI publishes progress to `ai-status-feed` and its replies stay local to the run's initiator. Payload schema (`sender`, `role`, `content`, `timestamp`) and validation live in `types/tasks.ts`, and every message is validated before it is rendered.
+- The feed carries both sides of the conversation: people's messages (`role: "user"`, published by their own client, which is where they originate and whose identity they carry) and Ghost AI's replies (`role: "assistant"` under the fixed `AI_CHAT_SENDER`). Progress is not chat — that stays on `ai-status-feed`. Payload schema (`sender`, `role`, `content`, `timestamp`) and validation live in `types/tasks.ts`, and every message is validated before it is rendered.
+- **The AI's replies are published by the task, never by the client that started the run.** A client-side publish only lands if that browser tab is still mounted and subscribed when the run ends, so a reload or a dropped socket loses the reply for the whole room. The client speaks for a run only when no task could have: the trigger request failed, or the run reached a terminal state without executing its own code (`EXPIRED`, `CANCELED`, `TIMED_OUT`, `CRASHED`, `SYSTEM_FAILURE`). Every other terminal status is the task's to report, so each outcome has exactly one publisher.
 - Liveblocks types feed payloads globally (`FeedMessageData`), so that type is the union of both feeds' shapes and readers narrow it by parsing.
 
 ### Spec Generation

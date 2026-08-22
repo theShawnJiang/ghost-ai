@@ -2,30 +2,26 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 
-/**
- * Shape of the `design-agent` task output. Declared here rather than inferred
- * from the task type to avoid coupling the client bundle to the server task and
- * its trigger-version-specific brand types.
- */
-export interface DesignRunOutput {
-  roomId: string
-  summary: string
-  appliedOperations: number
-}
-
 /** What `POST /api/ai/design` returns: the run and a token scoped to reading it. */
 interface DesignTriggerResponse {
   runId: string
   publicToken: string
 }
 
+/**
+ * Terminal Trigger.dev run statuses, as strings rather than the SDK's `RunStatus`
+ * type: importing it would pull `@trigger.dev/core` into the client bundle for a
+ * handful of string literals.
+ */
+export type DesignRunStatus = string
+
 export interface UseDesignAgentOptions {
   /** Room the design targets — also the project id. */
   roomId: string
   /**
-   * Publishes an AI reply to the room's shared `ai-chat` feed. Summaries and
-   * failures both go through here so every participant sees the outcome, not
-   * just whoever started the run.
+   * Publishes a message to the room's shared `ai-chat` feed on Ghost AI's
+   * behalf. Used only for failures the task could not report itself; a run that
+   * reaches its own code publishes its reply server-side.
    */
   onAiMessage: (content: string) => void
 }
@@ -40,16 +36,36 @@ export interface DesignAgentState {
   /** Run-scoped public token used to subscribe to that run. */
   publicToken: string | undefined
   /** Call when the run reaches a terminal state; resets the run state. */
-  handleComplete: (
-    output: DesignRunOutput | undefined,
-    error: Error | undefined,
-  ) => void
+  handleComplete: (status: DesignRunStatus | undefined) => void
 }
 
 const START_ERROR =
   "Sorry — I couldn't start the design. Please try again in a moment."
-const RUN_ERROR = "Ghost AI couldn't finish this design. Please try again."
-const RUN_DONE = "Design generation finished."
+
+/**
+ * Terminal statuses where the task ran far enough to speak for itself: it
+ * publishes its summary on success and its failure notice from its own catch,
+ * both straight into the room's `ai-chat` feed. Saying anything from here for
+ * these would double up.
+ */
+const TASK_REPORTED_STATUSES = new Set(["COMPLETED", "FAILED"])
+
+/**
+ * Terminal statuses where the task never got to publish anything — it expired
+ * in the queue, was cancelled, or its process died. Nothing else will tell the
+ * room, so the client does.
+ */
+const UNREPORTED_STATUS_MESSAGES: Record<string, string> = {
+  EXPIRED:
+    "This design request expired before a worker picked it up. Please try again.",
+  CANCELED: "This design run was cancelled.",
+  TIMED_OUT: "This design run ran out of time before it finished.",
+  CRASHED: "Ghost AI stopped unexpectedly. Please try again.",
+  SYSTEM_FAILURE: "Ghost AI stopped unexpectedly. Please try again.",
+}
+
+const UNKNOWN_STATUS_MESSAGE =
+  "Ghost AI couldn't finish this design. Please try again."
 
 /**
  * Drives an AI design generation from the sidebar: posts the prompt to the
@@ -99,6 +115,7 @@ export function useDesignAgent({
         setPublicToken(newToken)
       } catch {
         setIsRunning(false)
+        // No run exists, so nothing server-side can report this — say it here.
         onAiMessageRef.current(START_ERROR)
       }
     },
@@ -107,21 +124,19 @@ export function useDesignAgent({
 
   /**
    * Called once when the run reaches a terminal state (via `useRealtimeRun`'s
-   * `onComplete`). Publishes the AI's closing message and drops the subscription.
+   * `onComplete`). Drops the subscription, and speaks for the run only when the
+   * run never got the chance to speak for itself.
    */
-  const handleComplete = useCallback(
-    (output: DesignRunOutput | undefined, error: Error | undefined) => {
-      const content = error
-        ? RUN_ERROR
-        : (output?.summary?.trim() ?? "") || RUN_DONE
+  const handleComplete = useCallback((status: DesignRunStatus | undefined) => {
+    setIsRunning(false)
+    setRunId(undefined)
+    setPublicToken(undefined)
 
-      onAiMessageRef.current(content)
-      setIsRunning(false)
-      setRunId(undefined)
-      setPublicToken(undefined)
-    },
-    [],
-  )
+    if (status && TASK_REPORTED_STATUSES.has(status)) return
+    onAiMessageRef.current(
+      (status && UNREPORTED_STATUS_MESSAGES[status]) ?? UNKNOWN_STATUS_MESSAGE,
+    )
+  }, [])
 
   return { submit, isRunning, runId, publicToken, handleComplete }
 }
